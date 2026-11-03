@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101827"><title>Zhister WMS</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+<aside class="sidebar" id="sidebar">
+  <div class="brand"><div class="brand-mark">Z</div><div><strong>zhister</strong><small>WAREHOUSE OS</small></div></div>
+  <div class="workspace"><span class="dot"></span><span>Main warehouse</span><span class="chevron">⌄</span></div>
+  <div class="nav-label">WORKSPACE</div>
+  <nav id="nav">
+    <button class="nav-item active" data-page="overview"><span>▦</span>Overview</button>
+    <button class="nav-item" data-page="orders"><span>▤</span>Orders <b class="nav-count" id="orderNavCount">12</b></button>
+    <button class="nav-item" data-page="picking"><span>⌑</span>Picking</button>
+    <button class="nav-item" data-page="packing"><span>▣</span>Packing</button>
+    <button class="nav-item" data-page="shipping"><span>↗</span>Shipping</button>
+    <div class="nav-label spaced">INVENTORY</div>
+    <button class="nav-item" data-page="products"><span>▧</span>Products</button>
+    <button class="nav-item" data-page="locations"><span>⌖</span>Locations</button>
+    <div class="nav-label spaced">MANAGE</div>
+    <button class="nav-item" data-page="reports"><span>▥</span>Reports</button>
+    <button class="nav-item" data-page="settings"><span>⚙</span>Settings</button>
+  </nav>
+  <div class="sidebar-bottom"><div class="avatar">MW</div><div class="user-meta"><strong>Warehouse team</strong><small>Operator workspace</small></div><span class="more">···</span></div>
+</aside>
+<main class="main">
+<header class="topbar"><button class="mobile-menu" id="mobileMenu">☰</button><div class="breadcrumbs">Workspace <span>/</span> <strong id="crumb">Overview</strong></div><div class="top-actions"><div class="sync-pill"><i></i> Demo data <span>·</span> Not connected</div><button class="icon-btn" title="Notifications">♧</button><div class="avatar small">MW</div></div></header>
+<div class="content">
+<section class="page active" id="page-overview">
+  <div class="page-head"><div><div class="eyebrow">MONDAY, 3 NOVEMBER 2026</div><h1>Warehouse overview</h1><p class="muted">Here's what's happening in your warehouse today.</p></div><button class="btn primary" data-goto="orders">＋ View orders</button></div>
+  <div class="stats-grid">
+    <article class="stat-card"><div class="stat-top"><span>Open orders</span><span class="stat-icon blue">▤</span></div><div class="stat-value" id="statOpen">12</div><div class="stat-foot"><span class="trend">↑ 8.2%</span> vs. yesterday</div></article>
+    <article class="stat-card"><div class="stat-top"><span>To pick</span><span class="stat-icon violet">⌑</span></div><div class="stat-value" id="statPick">8</div><div class="stat-foot">Across <strong>5</strong> products</div></article>
+    <article class="stat-card"><div class="stat-top"><span>Ready to ship</span><span class="stat-icon green">↗</span></div><div class="stat-value" id="statShip">3</div><div class="stat-foot">Awaiting carrier handover</div></article>
+    <article class="stat-card"><div class="stat-top"><span>Picked today</span><span class="stat-icon amber">✓</span></div><div class="stat-value" id="statPicked">6</div><div class="stat-foot"><span class="trend">↑ 12%</span> vs. yesterday</div></article>
+  </div>
+  <div class="dashboard-grid">
+    <section class="panel"><div class="panel-head"><div><h2>Order flow</h2><p class="muted">Current warehouse workload</p></div><button class="text-btn" data-goto="orders">All orders ↗</button></div><div class="flow-list">
+      <div class="flow-row"><div class="flow-symbol pale-blue">▤</div><div class="flow-copy"><strong>New &amp; open</strong><small>Waiting for allocation</small></div><b id="flowOpen">12</b><div class="progress"><i style="width:75%"></i></div></div>
+      <div class="flow-row"><div class="flow-symbol pale-violet">⌑</div><div class="flow-copy"><strong>Picking</strong><small>In progress</small></div><b id="flowPicking">4</b><div class="progress violet-bar"><i style="width:35%"></i></div></div>
+      <div class="flow-row"><div class="flow-symbol pale-green">▣</div><div class="flow-copy"><strong>Packing</strong><small>Ready for parcel details</small></div><b id="flowPacking">2</b><div class="progress green-bar"><i style="width:18%"></i></div></div>
+      <div class="flow-row"><div class="flow-symbol pale-amber">↗</div><div class="flow-copy"><strong>Ready to ship</strong><small>Awaiting dispatch</small></div><b id="flowShip">3</b><div class="progress amber-bar"><i style="width:25%"></i></div></div>
+    </div></section>
+    <section class="panel"><div class="panel-head"><div><h2>Quick actions</h2><p class="muted">Jump into your daily work</p></div></div><div class="quick-actions">
+      <button data-goto="picking"><span class="qa-icon violet">⌑</span><span><strong>Start picking</strong><small>Pick products by article number</small></span><b>→</b></button>
+      <button data-goto="packing"><span class="qa-icon green">▣</span><span><strong>Pack an order</strong><small>Verify and prepare parcels</small></span><b>→</b></button>
+      <button data-goto="products"><span class="qa-icon blue">▧</span><span><strong>Find a product</strong><small>Check stock and location</small></span><b>→</b></button>
+    </div></section>
+  </div>
+  <section class="panel recent-panel"><div class="panel-head"><div><h2>Recent orders</h2><p class="muted">Latest orders synced into the demo workspace</p></div><button class="text-btn" data-goto="orders">View all orders ↗</button></div><div class="table-wrap"><table><thead><tr><th>ORDER</th><th>CUSTOMER</th><th>ORDER DATE</th><th>ITEMS</th><th>STATUS</th><th></th></tr></thead><tbody id="recentRows"></tbody></table></div></section>
+  <div class="notice"><span>ⓘ</span><div><strong>Demo workspace</strong><p>These are sample records. Live order synchronisation, shipment updates and label retrieval will be enabled after the Zhipster API connection is verified.</p></div></div>
+</section>
+<section class="page" id="page-orders">
+ <div class="page-head"><div><div class="eyebrow">WORKSPACE / ORDERS</div><h1>Orders</h1><p class="muted">Search and manage orders already registered in Zhipster.</p></div><button class="btn" id="exportOrders">↓ Export CSV</button></div>
+ <div class="panel filters"><div class="filter-grid"><label>Search orders<input id="orderSearch" placeholder="Order ID, number, customer or article…"></label><label>Status<select id="statusFilter"><option value="">All statuses</option><option>Open</option><option>Picking</option><option>Packing</option><option>Ready to ship</option><option>Shipped</option></select></label><label>Carrier<select id="carrierFilter"><option value="">All carriers</option><option>DHL</option><option>Bring</option><option>PostNord</option><option>Collection</option></select></label><button class="btn subtle" id="clearFilters">Reset filters</button></div></div>
+ <div class="panel table-panel"><div class="panel-head"><div><h2>All orders <span class="count" id="orderCount">12</span></h2><p class="muted">Select an order to inspect its lines and warehouse progress.</p></div><span class="muted tiny">DEMO DATA</span></div><div class="table-wrap"><table><thead><tr><th>ORDER</th><th>CUSTOMER</th><th>CREATED</th><th>LINES</th><th>QTY</th><th>CARRIER</th><th>STATUS</th><th></th></tr></thead><tbody id="orderRows"></tbody></table></div></div>
+</section>
+<section class="page" id="page-picking">
+ <div class="page-head"><div><div class="eyebrow">WORKSPACE / PICKING</div><h1>Picking</h1><p class="muted">Pick by article number while keeping each customer's order separate.</p></div><button class="btn primary" id="printPick">↗ Print pick list</button></div>
+ <div class="notice"><span>ⓘ</span><div><strong>Batch picking</strong><p>Quantities are grouped by SKU for efficient warehouse travel. Each row still shows the individual order allocation, so orders cannot be mixed.</p></div></div>
+ <div class="panel filters"><div class="filter-grid"><label>Find article<input id="pickSearch" placeholder="Search article number or product name…"></label><label>Location<select id="locationFilter"><option value="">All locations</option><option>A1</option></select></label><label>Work status<select id="pickStatus"><option value="">All</option><option value="todo">To pick</option><option value="done">Completed</option></select></label></div></div>
+ <div id="pickGroups" class="pick-groups"></div>
+</section>
+<section class="page" id="page-packing">
+ <div class="page-head"><div><div class="eyebrow">WORKSPACE / PACKING</div><h1>Packing station</h1><p class="muted">Verify picked items and prepare parcel information.</p></div></div>
+ <div class="packing-layout"><div class="panel"><div class="panel-head"><div><h2>Orders to pack</h2><p class="muted">Picked orders awaiting packing</p></div></div><div id="packingOrders" class="packing-orders"></div></div><div class="panel pack-detail" id="packDetail"><div class="empty-state"><div>▣</div><h3>Select an order</h3><p>Choose an order to verify its items and package details.</p></div></div></div>
+</section>
+<section class="page" id="page-shipping">
+ <div class="page-head"><div><div class="eyebrow">WORKSPACE / SHIPPING</div><h1>Shipping</h1><p class="muted">Review packed orders before dispatch.</p></div></div>
+ <div class="notice warning"><span>!</span><div><strong>Zhipster connection not configured</strong><p>This screen uses demo shipment records. Do not treat these as booked shipments. Carrier booking, tracking and label retrieval must be performed by the existing Zhipster shipment.</p></div></div>
+ <div class="panel table-panel"><div class="panel-head"><div><h2>Shipment queue</h2><p class="muted">Packed orders ready for carrier handover</p></div></div><div class="table-wrap"><table><thead><tr><th>ORDER</th><th>CUSTOMER</th><th>CARRIER</th><th>WEIGHT</th><th>PACKAGE</th><th>STATUS</th></tr></thead><tbody id="shippingRows"></tbody></table></div></div>
+</section>
+<section class="page" id="page-products">
+ <div class="page-head"><div><div class="eyebrow">INVENTORY / PRODUCTS</div><h1>Products</h1><p class="muted">Product catalogue, stock overview and default pick locations.</p></div><button class="btn" id="exportProducts">↓ Export CSV</button></div>
+ <div class="panel filters"><div class="filter-grid"><label>Search products<input id="productSearch" placeholder="Article number or product name…"></label><label>Location<select id="productLocation"><option value="">All locations</option><option>A1</option></select></label></div></div>
+ <div class="panel table-panel"><div class="panel-head"><div><h2>Product catalogue <span class="count">5</span></h2><p class="muted">Initial product master supplied for the warehouse prototype.</p></div></div><div class="table-wrap"><table><thead><tr><th>ARTICLE NUMBER</th><th>PRODUCT</th><th>LOCATION</th><th>ON HAND</th><th>ALLOCATED</th><th>AVAILABLE</th></tr></thead><tbody id="productRows"></tbody></table></div></div>
+</section>
+<section class="page" id="page-locations">
+ <div class="page-head"><div><div class="eyebrow">INVENTORY / LOCATIONS</div><h1>Locations</h1><p class="muted">Warehouse storage locations and stock distribution.</p></div></div>
+ <div class="location-card"><div class="location-visual"><span>⌖</span><small>WAREHOUSE LOCATION</small><strong>A1</strong><p>Main storage area</p></div><div class="location-info"><div class="location-kpis"><div><strong id="locSkus">5</strong><small>SKUs</small></div><div><strong id="locUnits">86</strong><small>UNITS ON HAND</small></div><div><strong>100%</strong><small>PRODUCTS ASSIGNED</small></div></div><h3>Products in A1</h3><div id="locationProducts"></div></div></div>
+ <div class="notice"><span>ⓘ</span><div><strong>Initial location setup</strong><p>All five supplied Ifö product records are assigned to A1 for the prototype. Add more bins and split stock by location before enabling multi-location allocation.</p></div></div>
+</section>
+<section class="page" id="page-reports">
+ <div class="page-head"><div><div class="eyebrow">MANAGE / REPORTS</div><h1>Reports</h1><p class="muted">A simple operational snapshot of the demo data.</p></div></div>
+ <div class="stats-grid"><article class="stat-card"><div class="stat-top"><span>Orders in demo</span><span class="stat-icon blue">▤</span></div><div class="stat-value" id="reportOrders">12</div><div class="stat-foot">Sample order records</div></article><article class="stat-card"><div class="stat-top"><span>Product SKUs</span><span class="stat-icon violet">▧</span></div><div class="stat-value">5</div><div class="stat-foot">Initial product catalogue</div></article><article class="stat-card"><div class="stat-top"><span>Units in stock</span><span class="stat-icon green">▣</span></div><div class="stat-value" id="reportStock">86</div><div class="stat-foot">Demo inventory only</div></article><article class="stat-card"><div class="stat-top"><span>Pick location</span><span class="stat-icon amber">⌖</span></div><div class="stat-value">A1</div><div class="stat-foot">Default location</div></article></div>
+ <div class="panel"><div class="panel-head"><div><h2>Data exports</h2><p class="muted">Download current demo records for review.</p></div></div><div class="export-actions"><button class="btn" id="reportOrdersExport">Export orders CSV</button><button class="btn" id="reportProductsExport">Export products CSV</button><button class="btn" id="printReport">Print report</button></div></div>
+</section>
+<section class="page" id="page-settings">
+ <div class="page-head"><div><div class="eyebrow">MANAGE / SETTINGS</div><h1>Settings &amp; integrations</h1><p class="muted">Configure the warehouse workspace and external connections.</p></div></div>
+ <div class="panel settings-panel"><div class="setting-row"><div class="integration-logo">Z</div><div class="setting-copy"><strong>Zhipster Shipment API</strong><p>Read existing shipments and order lines, update package details, then retrieve labels from the same shipment.</p><span class="status-chip warn-chip">Not connected</span></div><button class="btn" disabled>Awaiting API key</button></div><div class="setting-row"><div class="integration-logo neutral">▣</div><div class="setting-copy"><strong>Warehouse configuration</strong><p>Default location: A1 · Picking method: computer-based · Barcode scanners: not in use.</p><span class="status-chip good-chip">Configured for prototype</span></div></div><div class="setting-row"><div class="integration-logo neutral">▤</div><div class="setting-copy"><strong>Package profile — half pallet</strong><p>Weight 45 kg · 60 × 80 × 95 cm. Confirm which SKUs should use this profile before live shipment updates.</p><span class="status-chip good-chip">Saved as demo profile</span></div></div></div>
+ <div class="notice warning"><span>!</span><div><strong>Important integration boundary</strong><p>Zhipster remains the source of truth for registered shipments, carrier bookings, tracking and labels. This WMS will manage warehouse execution. No API credentials are stored in this browser prototype.</p></div></div>
+</section>
+</div>
+</main>
+</div>
+<div class="modal-backdrop" id="modal"><div class="modal" role="dialog" aria-modal="true"><button class="modal-close" id="modalClose">×</button><div id="modalContent"></div></div></div>
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+</body></html>
