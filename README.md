@@ -31,9 +31,9 @@ The current version uses sample orders and local browser storage. It does not co
 - Zhipster remains the source of truth for registered orders/shipments, carrier bookings, tracking and labels.
 - Zhister WMS should own warehouse execution: allocation, pick progress, packing, internal stock locations and audit history.
 - The integration must update the existing Zhipster shipment rather than create a duplicate shipment.
-- Keep API credentials server-side (for example, Apps Script Properties or a protected backend); never place them in browser JavaScript.
+- Keep API credentials server-side; never place them in browser JavaScript.
 
-Before live integration, verify the available Zhipster endpoints, authentication, shipment-to-order-line mapping, package update semantics, and label retrieval with a valid API key.
+Before live write-back, verify the available Zhipster endpoints, authentication, shipment-to-order-line mapping, package update semantics, and label retrieval with a valid API key.
 
 ## Seed product catalogue
 
@@ -47,23 +47,22 @@ Before live integration, verify the available Zhipster endpoints, authentication
 
 The half-pallet profile is shown as a demo default: 45 kg, 60 × 80 × 95 cm. Confirm product applicability before live shipment updates.
 
-## Next implementation stages
+## Implementation stages
 
-1. Add a protected backend and persistent database with users, stock ledger, picking tasks and audit events.
+1. Build a protected backend and persistent database with users, stock ledger, picking tasks and audit events.
 2. Implement read-only Zhipster sync and map shipment/order-line identifiers.
 3. Add safe write-back for package dimensions and label retrieval against the existing shipment.
 4. Add concurrency controls, role permissions, stock reconciliation, backups and printer testing before replacing Ongoing in production.
 
-## Read-only Zhipster integration (first implementation)
+## Read-only Zhipster integration
 
-The Orders page now has a live shipment lookup. It calls a server-side endpoint at `/api/shipment`, which forwards only read requests to the production Zhipster Shipment API. The API key is read from the server environment and is never included in browser JavaScript.
+The Orders page has a live shipment lookup. It calls a server-side endpoint at `/api/shipment`, which forwards read requests to the production Zhipster Shipment API. The API key is read from the server environment and is never included in browser JavaScript.
 
 ### Configure on Vercel
 
-1. Import or connect this repository to a Vercel project (if it is not already connected).
-2. In **Project Settings → Environment Variables**, add `ZHIPSTER_API_KEY` with the Zhipster API key. Add it to the environments you intend to test.
-3. Redeploy after adding the variable.
-4. Open **Orders → Find a live Zhipster shipment** and search by shipment ID / shipment number or order number.
+1. In **Project Settings → Environment Variables**, add `ZHIPSTER_API_KEY` with the Zhipster API key to the environments you intend to test.
+2. Redeploy after adding or changing the variable.
+3. Open **Live orders → Find a live Zhipster shipment** and search by shipment ID or order number.
 
 The endpoint supports:
 - `GET /api/shipment?shipmentId=...` → Zhipster `GetShipment`
@@ -73,18 +72,21 @@ The proxy is read-only, rejects ambiguous identifiers, disables caching, and doe
 
 ### Current integration boundary
 
-This is a live lookup and mapping preview, not a full synchronization. It deliberately does not import API results into the demo picking queue, change shipment statuses, reserve stock, or call any Zhipster write endpoint. The current sample shipment includes a `DropShipment` distribution model; that is not evidence of own-warehouse fulfillment and must not be turned into picking work automatically.
+This is a live lookup and mapping preview, not a full synchronization. It deliberately does not import API results into the demo picking queue, change shipment statuses, reserve stock, or call any Zhipster write endpoint. Zhipster source statuses and distribution-model values are displayed as supplied. A distribution model—including `DropShipment`—must not be automatically treated as warehouse eligibility without an agreed and verified business rule. The browser index does not automatically create or exclude picking work.
 
 The static prototype still needs a serverless-capable host such as Vercel for `/api/shipment`. Opening `index.html` directly or serving it with only `python -m http.server` will display the UI but cannot run the API proxy.
 
+## Persistent WMS database
 
-## Warehouse eligibility preview (second implementation)
+The Supabase project `Rerso-wms` now has a private `wms` schema containing:
 
-The live shipment lookup now classifies each returned shipment conservatively before any warehouse workflow can use it:
+- Zhipster shipment headers and shipment lines, retaining the original JSON payload
+- Separate warehouse eligibility and operational work statuses
+- Picking tasks and pick-task lines
+- Packages and package lines
+- Dispatch records
+- Audit events
 
-- `DropShipment` is explicitly excluded from warehouse picking.
-- Missing distribution model, missing dispatch orders, or missing article lines require review.
-- Other distribution-model values also require review until their exact Zhipster meaning is confirmed and mapped to an own-warehouse fulfilment rule.
-- Shipment status (for example registered, pickup confirmed, or dispatched) is displayed as shipment information; it is not treated as proof of warehouse fulfilment responsibility.
+All nine tables have row-level security enabled. The schema is not granted to browser-facing `anon` or `authenticated` roles; database access must go through a protected server-side integration. No demo stock quantities or sample orders have been copied into the live database.
 
-This is deliberately a preview-only decision layer. It does not create picking tasks, import live shipments into browser-local demo orders, reserve stock, or write status changes to Zhipster. Do not loosen the eligibility rules until the actual distribution-model values and dispatch-line semantics have been verified against representative live API responses.
+The current database foundation does not yet synchronize shipments or power the existing demo screens. That is the next implementation step, after the server-side Supabase credential and access path are configured.
