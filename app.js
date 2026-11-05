@@ -125,23 +125,18 @@ function shipmentCard(record,index){
  const distribution=s.TransportInformation?.DistributionModel||s.DistributionModel||"Not supplied";
  const orderRefs=dispatch.flatMap(d=>d.OrderReferences?.Orders||[]);
  const orderNo=orderRefs.map(x=>x.OrderNumber).filter(Boolean).join(", ")||s.ShipmentNumber||"—";
- const lineRows=lines.length?lines.map(l=>({article:l.BuyersArticleNumber||l.SuppliersArticleNumber||l.ArticleID||"—",description:l.ArticleDescription||"—",qty:l.RequestedQuantity??l.DispatchedQuantity??l.ConfirmedQuantity??"—",status:l.DispatchLineStatus||"—"})):[];
- const eligibility=classifyShipment(s,dispatch,lines);
+ const lineRows=lines.length?lines.map(l=>({supplier:l.SuppliersArticleNumber||"—",buyer:l.BuyersArticleNumber||"—",description:l.ArticleDescription||"—",requested:l.RequestedQuantity??"—",confirmed:l.ConfirmedQuantity??"—",dispatched:l.DispatchedQuantity??"—",price:l.RequestedPrice??"—",amount:l.RequestedLineAmount??"—",status:l.DispatchLineStatus||"—"})):[];
+ 
  return `<article class="live-shipment-card">
   <div class="live-shipment-head"><div><span class="eyebrow">ZHIPSTER SHIPMENT ${index+1}</span><h3>${safeText(s.ShipmentNumber||s.ShipmentKey||"Shipment")}</h3></div><span class="status-chip status-open">${safeText(shipmentStatus)}</span></div>
-  <section class="eligibility-panel ${eligibility.kind}">
-   <div class="eligibility-title"><strong>Warehouse eligibility</strong><span class="eligibility-chip">${safeText(eligibility.label)}</span></div>
-   <p>${safeText(eligibility.reason)}</p>
-   <small>Shipment status is informational only; it does not prove that this warehouse must pick the goods.</small>
-  </section>
   <div class="live-shipment-grid">
    <div><small>Shipment ID</small><strong>${safeText(s.ShipmentKey||"—")}</strong></div>
    <div><small>Order reference</small><strong>${safeText(orderNo)}</strong></div>
    <div><small>Distribution model</small><strong>${safeText(distribution)}</strong></div>
    <div><small>Dispatch orders</small><strong>${dispatch.length}</strong></div>
   </div>
-  ${lineRows.length?`<div class="table-wrap"><table><thead><tr><th>ARTICLE</th><th>DESCRIPTION</th><th>REQUESTED QTY</th><th>LINE STATUS</th></tr></thead><tbody>${lineRows.map(l=>`<tr><td><strong>${safeText(l.article)}</strong></td><td>${safeText(l.description)}</td><td>${safeText(l.qty)}</td><td>${safeText(l.status)}</td></tr>`).join("")}</tbody></table></div>`:`<p class="muted">No dispatch order lines were present in this response.</p>`}
-  <p class="lookup-caution">Read-only classification preview. Live shipments are not imported into the demo queue, stock is not reserved, and no warehouse status is changed.</p>
+  ${lineRows.length?`<div class="table-wrap"><table><thead><tr><th>SUPPLIER ITEM NO.</th><th>BUYER ARTICLE NO.</th><th>DESCRIPTION</th><th>REQUESTED</th><th>CONFIRMED</th><th>DISPATCHED</th><th>PRICE</th><th>LINE AMOUNT</th><th>LINE STATUS</th></tr></thead><tbody>${lineRows.map(l=>`<tr><td><strong>${safeText(l.supplier)}</strong></td><td>${safeText(l.buyer)}</td><td>${safeText(l.description)}</td><td>${safeText(l.requested)}</td><td>${safeText(l.confirmed)}</td><td>${safeText(l.dispatched)}</td><td>${safeText(l.price)}</td><td>${safeText(l.amount)}</td><td>${safeText(l.status)}</td></tr>`).join("")}</tbody></table></div>`:`<p class="muted">No dispatch order lines were present in this response.</p>`}
+  <p class="lookup-caution">Read-only Zhipster data. Distribution model and shipment status are displayed as supplied; no records are automatically excluded from the live results or imported into picking.</p>
  </article>`;
 }
 async function lookupZhipster(event){
