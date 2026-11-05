@@ -4,6 +4,8 @@
  * Required Vercel environment variable: ZHIPSTER_API_KEY
  * The credential is never sent to the browser.
  */
+const { getVerifiedAdmin } = require("./_auth");
+
 module.exports = async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store, max-age=0");
   res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -11,6 +13,13 @@ module.exports = async function handler(req, res) {
   if (req.method !== "GET") {
     res.setHeader("Allow", "GET");
     return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  let user;
+  try { user = await getVerifiedAdmin(req, res, true); }
+  catch { return res.status(503).json({ error: "Authentication service is temporarily unavailable." }); }
+  if (!user || !user.email_confirmed_at || String(user.email || "").toLowerCase() !== "mahad.warsame.work@gmail.com") {
+    return res.status(401).json({ error: "Sign in with the authorised WMS administrator account to access live shipments." });
   }
 
   const apiKey = process.env.ZHIPSTER_API_KEY;
