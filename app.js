@@ -5,22 +5,10 @@ const PRODUCTS=[
  {sku:"629309311",name:"WC-stol Ifö Spira 6293 Hårdsits",location:"A1",stock:12,allocated:2},
  {sku:"629308811",name:"WC-stol Ifö Spira 6293 Rimfree inkl Mjuksits",location:"A1",stock:18,allocated:6}
 ];
-const seed=[
- ["9542","Vincent Dadvar","2026-11-03","DHL","Open",[["629308811",1],["99488",1]]],
- ["9541","Thomas Dahl","2026-11-03","DHL","Picking",[["99566",2]]],
- ["9540","Emma Lindström","2026-11-03","Bring","Open",[["99420",1],["99488",2]]],
- ["9539","Anders Nilsson","2026-11-03","PostNord","Ready to ship",[["629309311",1]]],
- ["9538","Sofia Berg","2026-11-02","DHL","Packing",[["629308811",1]]],
- ["9537","Johan Eriksson","2026-11-02","Bring","Open",[["99566",1],["99420",1]]],
- ["9536","Maja Svensson","2026-11-02","DHL","Picking",[["99488",3]]],
- ["9535","Erik Karlsson","2026-11-02","PostNord","Shipped",[["629308811",1]]],
- ["9534","Lina Andersson","2026-11-02","DHL","Open",[["629309311",1],["99566",1]]],
- ["9533","Oskar Persson","2026-11-01","Bring","Picking",[["99420",2]]],
- ["9532","Ella Johansson","2026-11-01","DHL","Ready to ship",[["99488",1],["99566",1]]],
- ["9531","Nils Larsson","2026-11-01","Collection","Open",[["629308811",1]]]
-];
 const KEY="zhister-wms-demo-v1";
-let orders=JSON.parse(localStorage.getItem(KEY)||"null")||seed.map((r,i)=>({id:"ZH-"+(50879-i),number:r[0],customer:r[1],date:r[2],carrier:r[3],status:r[4],lines:r[5].map(x=>({sku:x[0],qty:x[1],picked:0})),weight:0,package:null}));
+// Remove the retired prototype orders from this browser. Real WMS orders will be loaded from Supabase.
+localStorage.removeItem(KEY);
+let orders=[];
 let selectedPack=null;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const product=sku=>PRODUCTS.find(p=>p.sku===sku);
@@ -88,7 +76,7 @@ function renderShipping(){
  $("#shippingRows").innerHTML=list.map(o=>`<tr><td><strong>#${o.number}</strong><span class="sub-cell">${o.id}</span></td><td>${o.customer}</td><td>${o.carrier}</td><td>${o.weight||"—"} kg</td><td>${o.package?`${o.package.length} × ${o.package.width} × ${o.package.height} cm`:"Not recorded"}</td><td>${badge(o.status)}</td></tr>`).join("")||`<tr><td colspan="6" class="muted">No packed orders in queue.</td></tr>`;
 }
 function csv(name,rows){let text=rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\n");let a=document.createElement("a"),url=URL.createObjectURL(new Blob(["\ufeff"+text],{type:"text/csv;charset=utf-8"}));a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}
-function exportOrders(){csv("zhister-orders-demo.csv",[["Order ID","Order number","Customer","Date","Carrier","Status","Article","Product","Quantity","Picked"],...orders.flatMap(o=>o.lines.map(l=>[o.id,o.number,o.customer,o.date,o.carrier,o.status,l.sku,product(l.sku).name,l.qty,l.picked]))])}
+function exportOrders(){csv("zhister-orders.csv",[["Order ID","Order number","Customer","Date","Carrier","Status","Article","Product","Quantity","Picked"],...orders.flatMap(o=>o.lines.map(l=>[o.id,o.number,o.customer,o.date,o.carrier,o.status,l.sku,product(l.sku).name,l.qty,l.picked]))])}
 function exportProducts(){csv("zhister-products-demo.csv",[["Article number","Product","Location","On hand","Allocated","Available"],...PRODUCTS.map(p=>[p.sku,p.name,p.location,p.stock,p.allocated,p.stock-p.allocated])])}
 
 function safeText(value){
