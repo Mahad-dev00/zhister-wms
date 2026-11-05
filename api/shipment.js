@@ -4,7 +4,7 @@
  * Required Vercel environment variable: ZHIPSTER_API_KEY
  * The credential is never sent to the browser.
  */
-const { getVerifiedAdmin } = require("./_auth");
+const { getVerifiedAdmin } = require("../lib/auth");
 
 module.exports = async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store, max-age=0");
