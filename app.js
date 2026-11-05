@@ -9,6 +9,7 @@ const KEY="zhister-wms-demo-v1";
 // Remove the retired prototype orders from this browser. Real WMS orders will be loaded from Supabase.
 localStorage.removeItem(KEY);
 let orders=[];
+let wmsShipments=[];
 let selectedPack=null;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const product=sku=>PRODUCTS.find(p=>p.sku===sku);
@@ -22,18 +23,34 @@ $$("[data-page]").forEach(b=>b.addEventListener("click",()=>go(b.dataset.page)))
 $$("[data-goto]").forEach(b=>b.addEventListener("click",()=>go(b.dataset.goto)));
 $("#mobileMenu").onclick=()=>$("#sidebar").classList.toggle("open");
 function renderOverview(){
- const open=orders.filter(o=>o.status==="Open").length,pick=orders.filter(o=>o.status==="Picking").length,pack=orders.filter(o=>o.status==="Packing").length,ready=orders.filter(o=>o.status==="Ready to ship").length;
- $("#statOpen").textContent=open;$("#statPick").textContent=pick;$("#statShip").textContent=ready;$("#statPicked").textContent=orders.reduce((s,o)=>s+o.lines.reduce((a,l)=>a+l.picked,0),0);
- $("#flowOpen").textContent=open;$("#flowPicking").textContent=pick;$("#flowPacking").textContent=pack;$("#flowShip").textContent=ready;
- $("#recentRows").innerHTML=orders.slice(0,5).map(o=>`<tr><td><button class="order-link" data-order="${o.number}">#${o.number}</button><span class="sub-cell">${o.id}</span></td><td class="customer">${o.customer}</td><td>${o.date}</td><td>${o.lines.length} lines</td><td>${qty(o)} pcs</td><td>${o.carrier}</td><td>${badge(o.status)}</td><td>···</td></tr>`).join("");
- $("#orderNavCount").textContent=orders.length;
+ const total=wmsShipments.length,review=wmsShipments.filter(s=>s.eligibility==="needs_review").length,eligible=wmsShipments.filter(s=>s.eligibility==="eligible").length,excluded=wmsShipments.filter(s=>s.eligibility==="not_eligible").length;
+ $("#statOpen").textContent=total;$("#statPick").textContent=review;$("#statShip").textContent=eligible;$("#statPicked").textContent=wmsShipments.reduce((n,s)=>n+(s.shipment_lines||[]).length,0);
+ $("#flowOpen").textContent=total;$("#flowPicking").textContent=review;$("#flowPacking").textContent=eligible;$("#flowShip").textContent=excluded;
+ $("#recentRows").innerHTML=wmsShipments.slice(0,5).map(s=>`<tr><td><button class="order-link" data-wms-shipment="${safeText(s.id)}">${safeText(s.external_order_number||s.external_shipment_number||s.external_shipment_id)}</button><span class="sub-cell">${safeText(s.external_shipment_number||s.external_shipment_id)}</span></td><td>${safeText(s.source_status||"Unknown")}</td><td>${safeText(s.distribution_model||"Not supplied")}</td><td>${(s.shipment_lines||[]).length} lines</td><td>${badge(s.eligibility==="eligible"?"Ready to pick":s.eligibility==="not_eligible"?"Excluded":"Needs review")}</td><td><button class="text-btn" data-wms-shipment="${safeText(s.id)}">Details →</button></td></tr>`).join("")||'<tr><td colspan="6" class="muted">No shipments imported yet. Use Live orders to retrieve an existing Zhipster order.</td></tr>';
+ $("#orderNavCount").textContent=total;
+ $$("[data-wms-shipment]").forEach(b=>b.onclick=()=>showWmsShipment(b.dataset.wmsShipment));
 }
 function renderOrders(){
- let q=$("#orderSearch").value.toLowerCase(),st=$("#statusFilter").value,car=$("#carrierFilter").value;
- let rows=orders.filter(o=>(!st||o.status===st)&&(!car||o.carrier===car)&&(!q||[o.id,o.number,o.customer,...o.lines.map(l=>l.sku)].join(" ").toLowerCase().includes(q)));
+ const q=$("#orderSearch").value.toLowerCase(),eligibility=$("#statusFilter").value;
+ const rows=wmsShipments.filter(s=>(!eligibility||s.eligibility===eligibility)&&(!q||[s.id,s.external_shipment_id,s.external_shipment_number,s.external_order_number,s.source_status,s.distribution_model,...(s.shipment_lines||[]).flatMap(l=>[l.supplier_article_number,l.buyer_article_number,l.description])].join(" ").toLowerCase().includes(q)));
  $("#orderCount").textContent=rows.length;
- $("#orderRows").innerHTML=rows.map(o=>`<tr><td><button class="order-link" data-order="${o.number}">#${o.number}</button><span class="sub-cell">${o.id}</span></td><td class="customer">${o.customer}</td><td>${o.date}</td><td>${o.lines.length}</td><td>${qty(o)}</td><td>${o.carrier}</td><td>${badge(o.status)}</td><td><button class="text-btn" data-order="${o.number}">Details →</button></td></tr>`).join("")||`<tr><td colspan="8" class="muted">No matching orders.</td></tr>`;
- $$("[data-order]").forEach(b=>b.onclick=()=>showOrder(b.dataset.order));
+ $("#orderRows").innerHTML=rows.map(s=>`<tr><td><button class="order-link" data-wms-shipment="${safeText(s.id)}">${safeText(s.external_order_number||"—")}</button><span class="sub-cell">${safeText(s.external_shipment_number||s.external_shipment_id)}</span></td><td>${safeText(s.source_status||"Unknown")}</td><td>${safeText(s.distribution_model||"Not supplied")}</td><td>${(s.shipment_lines||[]).length}</td><td>${(s.shipment_lines||[]).reduce((n,l)=>n+Number(l.requested_quantity||0),0)}</td><td>${safeText(s.eligibility||"needs_review")}</td><td><button class="text-btn" data-wms-shipment="${safeText(s.id)}">Details →</button></td></tr>`).join("")||'<tr><td colspan="7" class="muted">No imported shipments match. Go to Live orders and search an existing Zhipster Order Number.</td></tr>';
+ $$("[data-wms-shipment]").forEach(b=>b.onclick=()=>showWmsShipment(b.dataset.wmsShipment));
+}
+function showWmsShipment(id){
+ const s=wmsShipments.find(x=>x.id===id);if(!s)return;
+ const lines=s.shipment_lines||[],work=s.warehouse_work||{};
+ $("#modalContent").innerHTML=`<div class="eyebrow">ZHIPSTER SHIPMENT / ${safeText(s.external_shipment_id)}</div><h2>${safeText(s.external_shipment_number||s.external_order_number||"Shipment")}</h2><p class="muted">Order reference: ${safeText(s.external_order_number||"Not supplied")}</p><div class="detail-grid"><div class="detail-box"><small>ZHIPSTER STATUS</small><strong>${safeText(s.source_status||"Unknown")}</strong></div><div class="detail-box"><small>DISTRIBUTION MODEL</small><strong>${safeText(s.distribution_model||"Not supplied")}</strong></div><div class="detail-box"><small>WAREHOUSE ELIGIBILITY</small><strong>${safeText(s.eligibility||"needs_review")}</strong></div><div class="detail-box"><small>ARTICLE LINES</small><strong>${lines.length}</strong></div></div><p class="muted">${safeText(work.hold_reason||"Warehouse work remains on hold until fulfilment eligibility is reviewed.")}</p><h3 style="font:700 12px Manrope">Shipment article lines</h3><div class="table-wrap"><table class="modal-lines"><thead><tr><th>SUPPLIER ITEM NO.</th><th>BUYER ARTICLE NO.</th><th>DESCRIPTION</th><th>REQUESTED</th><th>CONFIRMED</th><th>DISPATCHED</th></tr></thead><tbody>${lines.map(l=>`<tr><td>${safeText(l.supplier_article_number||"—")}</td><td>${safeText(l.buyer_article_number||"—")}</td><td>${safeText(l.description||"—")}</td><td>${safeText(l.requested_quantity??"—")}</td><td>${safeText(l.confirmed_quantity??"—")}</td><td>${safeText(l.dispatched_quantity??"—")}</td></tr>`).join("")||'<tr><td colspan="6">No article lines returned.</td></tr>'}</tbody></table></div><div class="modal-actions"><button class="btn" onclick="closeModal()">Close</button></div>`;
+ $("#modal").classList.add("show");
+}
+async function loadWmsShipments(){
+ try{
+  const response=await fetch("/api/wms/shipments",{headers:{Accept:"application/json"},cache:"no-store"});
+  if(!response.ok)return;
+  const body=await response.json();
+  wmsShipments=Array.isArray(body.shipments)?body.shipments:[];
+  renderOverview();renderOrders();$("#reportOrders").textContent=wmsShipments.length;
+ }catch(error){console.warn("Could not load WMS shipments.");}
 }
 function showOrder(num){
  let o=orders.find(x=>x.number===num);if(!o)return;
@@ -155,23 +172,22 @@ function shipmentCard(record,index){
 }
 async function lookupZhipster(event){
  event.preventDefault();
- const type="orderNumber";
  const value=$("#zhipsterLookupValue").value.trim();
  const result=$("#zhipsterLookupResult"),button=$("#zhipsterLookupButton");
- if(!value){result.textContent="Enter an identifier first.";return}
- button.disabled=true;button.textContent="Searching…";result.textContent="Contacting Zhipster…";
+ if(!value){result.textContent="Enter an Order Number first.";return}
+ button.disabled=true;button.textContent="Importing…";result.textContent="Retrieving the existing shipment from Zhipster and saving it to WMS…";
  try{
-  const params=new URLSearchParams({[type]:value});
-  const response=await fetch(`/api/shipment?${params.toString()}`,{headers:{Accept:"application/json"},cache:"no-store"});
+  const response=await fetch("/api/wms/shipments",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({orderNumber:value}),cache:"no-store"});
   const body=await response.json();
-  if(!response.ok)throw new Error(body.error||`Lookup failed (HTTP ${response.status}).`);
-  if(body.found===false){result.innerHTML='<p class="lookup-empty">No shipment was found for this identifier.</p>';return}
-  const shipments=collectShipments(body.data);
-  if(!shipments.length){result.innerHTML='<p class="lookup-empty">Zhipster returned data, but no shipment record could be identified in the response. The raw response is not shown.</p>';return}
-  rememberLiveShipments(shipments);
-  toast("Retrieved "+shipments.length+" shipment(s).");
+  if(!response.ok)throw new Error(body.error||`Import failed (HTTP ${response.status}).`);
+  if(body.found===false){result.innerHTML='<p class="lookup-empty">No shipment was found for this Order Number.</p>';return}
+  const shipments=collectShipments(body.sourceShipments||[]);
+  if(shipments.length)rememberLiveShipments(shipments);
+  await loadWmsShipments();
+  result.insertAdjacentHTML("afterbegin",`<p class="lookup-success">${Number(body.imported||0)} shipment(s) saved to the WMS database. Existing Zhipster shipments were not changed.</p>`);
+  toast("WMS shipment import complete.");
  }catch(error){
-  result.innerHTML=`<p class="lookup-error">${safeText(error.message||"Could not complete the lookup.")}</p>`;
+  result.innerHTML=`<p class="lookup-error">${safeText(error.message||"Could not complete the import.")}</p>`;
  }finally{
   button.disabled=false;button.textContent="Search Zhipster";
  }
@@ -180,9 +196,10 @@ $("#zhipsterLookupForm").addEventListener("submit",lookupZhipster);
 $("#liveItemSearch").addEventListener("input",renderLiveShipmentIndex);
 renderLiveShipmentIndex();
 
-$("#orderSearch").oninput=renderOrders;$("#statusFilter").onchange=renderOrders;$("#carrierFilter").onchange=renderOrders;$("#clearFilters").onclick=()=>{$("#orderSearch").value="";$("#statusFilter").value="";$("#carrierFilter").value="";renderOrders()};
+$("#orderSearch").oninput=renderOrders;$("#statusFilter").onchange=renderOrders;$("#clearFilters").onclick=()=>{$("#orderSearch").value="";$("#statusFilter").value="";renderOrders()};
 $("#pickSearch").oninput=renderPicking;$("#locationFilter").onchange=renderPicking;$("#pickStatus").onchange=renderPicking;$("#productSearch").oninput=renderProducts;$("#productLocation").onchange=renderProducts;
 $("#exportOrders").onclick=exportOrders;$("#reportOrdersExport").onclick=exportOrders;$("#exportProducts").onclick=exportProducts;$("#reportProductsExport").onclick=exportProducts;
 $("#printPick").onclick=()=>window.print();$("#printReport").onclick=()=>window.print();
 function renderAll(){renderOverview();renderOrders();renderProducts();renderPicking();renderPacking();renderShipping();$("#reportOrders").textContent=orders.length}
 renderAll();
+loadWmsShipments();
