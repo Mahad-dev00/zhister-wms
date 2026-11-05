@@ -146,7 +146,7 @@ function shipmentCard(record,index){
 }
 async function lookupZhipster(event){
  event.preventDefault();
- const type=$("#zhipsterLookupType").value;
+ const type="orderNumber";
  const value=$("#zhipsterLookupValue").value.trim();
  const result=$("#zhipsterLookupResult"),button=$("#zhipsterLookupButton");
  if(!value){result.textContent="Enter an identifier first.";return}
