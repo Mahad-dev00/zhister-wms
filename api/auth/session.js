@@ -1,4 +1,4 @@
-const { getVerifiedAdmin, clearSessionCookies } = require("../_auth");
+const { getVerifiedAdmin, clearSessionCookies } = require("../../lib/auth");
 
 module.exports = async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
