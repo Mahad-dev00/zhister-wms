@@ -5,7 +5,41 @@
 <meta name="theme-color" content="#101827"><title>Zhister WMS</title>
 <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body>\n<style>
+body:not(.authenticated) .app, body:not(.authenticated) #modal, body:not(.authenticated) #toast { display:none !important; }
+#authGate{min-height:100vh;display:grid;place-items:center;padding:24px;background:#f4f6fa;color:#152033;font-family:Inter,system-ui,sans-serif}
+#authGate[hidden]{display:none}
+.auth-card{width:min(100%,440px);background:#fff;border:1px solid #e4e8ef;border-radius:18px;padding:34px;box-shadow:0 20px 60px rgba(16,24,39,.09)}
+.auth-brand{display:flex;align-items:center;gap:12px;margin-bottom:32px;font-weight:800;font-size:20px}
+.auth-mark{width:42px;height:42px;border-radius:12px;background:#17243a;color:#fff;display:grid;place-items:center;font-size:22px}
+.auth-card h1{font-size:25px;margin:0 0 8px}.auth-card p{color:#64748b;line-height:1.5;margin:0 0 24px}
+.auth-card label{display:block;font-size:13px;font-weight:650;margin:16px 0 7px}
+.auth-card input{width:100%;box-sizing:border-box;border:1px solid #d8dee8;border-radius:9px;padding:12px;font:inherit}
+.auth-card button{cursor:pointer}
+.auth-submit{width:100%;border:0;border-radius:9px;padding:13px;background:#1d4ed8;color:white;font-weight:700;margin-top:22px}
+.auth-submit:disabled{opacity:.6;cursor:wait}
+.auth-toggle{width:100%;border:0;background:transparent;color:#1d4ed8;font-weight:650;margin-top:18px;padding:8px}
+#authMessage{padding:11px 12px;border-radius:8px;background:#eef6ff;color:#1e40af;font-size:13px;margin-top:16px}
+#authMessage[data-error=true]{background:#fff1f2;color:#be123c}
+.auth-foot{font-size:12px!important;margin-top:22px!important;margin-bottom:0!important}
+</style>
+<section id="authGate" hidden>
+  <div class="auth-card">
+    <div class="auth-brand"><span class="auth-mark">Z</span><span>zhister <small style="display:block;font-size:10px;letter-spacing:1.4px;color:#64748b">WAREHOUSE OS</small></span></div>
+    <h1 id="authHeading">Sign in to Zhister</h1>
+    <p id="authIntro">Use your verified administrator email and password.</p>
+    <form id="authForm">
+      <label for="authEmail">Administrator email</label>
+      <input id="authEmail" type="email" autocomplete="username" value="mahad.warsame.work@gmail.com" required>
+      <label for="authPassword">Password</label>
+      <input id="authPassword" type="password" autocomplete="current-password" required>
+      <button id="authSubmit" class="auth-submit" type="submit">Sign in</button>
+    </form>
+    <div id="authMessage" role="status" aria-live="polite" hidden></div>
+    <button id="authModeToggle" class="auth-toggle" type="button">First time here? Create your account</button>
+    <p class="auth-foot">Access is restricted to the designated WMS administrator. Your password is handled by Supabase Auth and is never stored by this application.</p>
+  </div>
+</section>
 <div class="app">
 <aside class="sidebar" id="sidebar">
   <div class="brand"><div class="brand-mark">Z</div><div><strong>zhister</strong><small>WAREHOUSE OS</small></div></div>
@@ -112,5 +146,5 @@
 </div>
 <div class="modal-backdrop" id="modal"><div class="modal" role="dialog" aria-modal="true"><button class="modal-close" id="modalClose">×</button><div id="modalContent"></div></div></div>
 <div class="toast" id="toast"></div>
-<script src="app.js"></script>
+<script src="auth.js"></script>\n<script src="app.js"></script>
 </body></html>
