@@ -1,4 +1,4 @@
-const { ADMIN_EMAIL, authRequest, originAllowed, setSessionCookies } = require("../_auth");
+const { ADMIN_EMAIL, authRequest, originAllowed, setSessionCookies } = require("../../lib/auth");
 
 module.exports = async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
