@@ -124,7 +124,7 @@ module.exports = async function handler(req, res) {
     for (const record of records) {
       imported.push(await rpc("import_wms_shipment", { p_payload: record }));
     }
-    return res.status(200).json({ found: true, imported: imported.length, shipments: imported });
+    return res.status(200).json({ found: true, imported: imported.length, shipments: imported, sourceShipments: records });
   } catch (error) {
     const message = error && error.message ? error.message : "Could not complete the WMS shipment request.";
     const status = /temporarily unavailable|service/i.test(message) ? 503 : 502;
