@@ -76,3 +76,15 @@ The proxy is read-only, rejects ambiguous identifiers, disables caching, and doe
 This is a live lookup and mapping preview, not a full synchronization. It deliberately does not import API results into the demo picking queue, change shipment statuses, reserve stock, or call any Zhipster write endpoint. The current sample shipment includes a `DropShipment` distribution model; that is not evidence of own-warehouse fulfillment and must not be turned into picking work automatically.
 
 The static prototype still needs a serverless-capable host such as Vercel for `/api/shipment`. Opening `index.html` directly or serving it with only `python -m http.server` will display the UI but cannot run the API proxy.
+
+
+## Warehouse eligibility preview (second implementation)
+
+The live shipment lookup now classifies each returned shipment conservatively before any warehouse workflow can use it:
+
+- `DropShipment` is explicitly excluded from warehouse picking.
+- Missing distribution model, missing dispatch orders, or missing article lines require review.
+- Other distribution-model values also require review until their exact Zhipster meaning is confirmed and mapped to an own-warehouse fulfilment rule.
+- Shipment status (for example registered, pickup confirmed, or dispatched) is displayed as shipment information; it is not treated as proof of warehouse fulfilment responsibility.
+
+This is deliberately a preview-only decision layer. It does not create picking tasks, import live shipments into browser-local demo orders, reserve stock, or write status changes to Zhipster. Do not loosen the eligibility rules until the actual distribution-model values and dispatch-line semantics have been verified against representative live API responses.
