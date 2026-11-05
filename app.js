@@ -103,6 +103,20 @@ function collectShipments(data){
  }
  return data.ShipmentKey||data.ShipmentNumber?[data]:[];
 }
+function classifyShipment(shipment,dispatch,lines){
+ const model=String(shipment.TransportInformation?.DistributionModel||shipment.DistributionModel||"").trim();
+ const normalized=model.toLowerCase().replace(/[^a-z]/g,"");
+ if(normalized==="dropshipment"||normalized==="dropship"){
+  return {label:"Excluded from warehouse picking",kind:"excluded",reason:"DropShipment indicates this shipment is handled outside the warehouse picking flow. It must not become a WMS pick task."};
+ }
+ if(!model){
+  return {label:"Review required",kind:"review",reason:"Zhipster did not provide a distribution model. Fulfilment responsibility cannot be established from shipment status alone."};
+ }
+ if(!dispatch.length||!lines.length){
+  return {label:"Review required",kind:"review",reason:"The shipment has a distribution model, but dispatch orders or article lines are missing. The warehouse workload cannot be verified."};
+ }
+ return {label:"Review required",kind:"review",reason:`Distribution model "${model}" has not yet been explicitly mapped to an own-warehouse fulfilment rule. No picking task will be created.`};
+}
 function shipmentCard(record,index){
  const s=record.Shipment||record.shipment||record;
  const dispatch=Array.isArray(s.DispatchOrders)?s.DispatchOrders:(Array.isArray(record.DispatchOrders)?record.DispatchOrders:[]);
@@ -112,8 +126,14 @@ function shipmentCard(record,index){
  const orderRefs=dispatch.flatMap(d=>d.OrderReferences?.Orders||[]);
  const orderNo=orderRefs.map(x=>x.OrderNumber).filter(Boolean).join(", ")||s.ShipmentNumber||"—";
  const lineRows=lines.length?lines.map(l=>({article:l.BuyersArticleNumber||l.SuppliersArticleNumber||l.ArticleID||"—",description:l.ArticleDescription||"—",qty:l.RequestedQuantity??l.DispatchedQuantity??l.ConfirmedQuantity??"—",status:l.DispatchLineStatus||"—"})):[];
+ const eligibility=classifyShipment(s,dispatch,lines);
  return `<article class="live-shipment-card">
   <div class="live-shipment-head"><div><span class="eyebrow">ZHIPSTER SHIPMENT ${index+1}</span><h3>${safeText(s.ShipmentNumber||s.ShipmentKey||"Shipment")}</h3></div><span class="status-chip status-open">${safeText(shipmentStatus)}</span></div>
+  <section class="eligibility-panel ${eligibility.kind}">
+   <div class="eligibility-title"><strong>Warehouse eligibility</strong><span class="eligibility-chip">${safeText(eligibility.label)}</span></div>
+   <p>${safeText(eligibility.reason)}</p>
+   <small>Shipment status is informational only; it does not prove that this warehouse must pick the goods.</small>
+  </section>
   <div class="live-shipment-grid">
    <div><small>Shipment ID</small><strong>${safeText(s.ShipmentKey||"—")}</strong></div>
    <div><small>Order reference</small><strong>${safeText(orderNo)}</strong></div>
@@ -121,7 +141,7 @@ function shipmentCard(record,index){
    <div><small>Dispatch orders</small><strong>${dispatch.length}</strong></div>
   </div>
   ${lineRows.length?`<div class="table-wrap"><table><thead><tr><th>ARTICLE</th><th>DESCRIPTION</th><th>REQUESTED QTY</th><th>LINE STATUS</th></tr></thead><tbody>${lineRows.map(l=>`<tr><td><strong>${safeText(l.article)}</strong></td><td>${safeText(l.description)}</td><td>${safeText(l.qty)}</td><td>${safeText(l.status)}</td></tr>`).join("")}</tbody></table></div>`:`<p class="muted">No dispatch order lines were present in this response.</p>`}
-  <p class="lookup-caution">Read-only preview. Warehouse picking is not started automatically. Confirm that this shipment is fulfilled from your own warehouse before creating WMS work.</p>
+  <p class="lookup-caution">Read-only classification preview. Live shipments are not imported into the demo queue, stock is not reserved, and no warehouse status is changed.</p>
  </article>`;
 }
 async function lookupZhipster(event){
