@@ -81,7 +81,7 @@ The static prototype still needs a serverless-capable host such as Vercel for `/
 The Preview branch now has a Supabase Auth sign-in gate.
 
 - The only authorised account is `mahad.warsame.work@gmail.com` (display name Mahad).
-- First-time setup: use **Create your account** on the Preview login screen, then confirm the verification email before signing in.
+- First-time setup: use **Create your account** on the Preview login screen, then confirm the verification email before signing in. In Supabase → Authentication → URL Configuration, add `https://*-mahad-dev00.vercel.app/**` to Additional Redirect URLs so verification returns to the Preview deployment.
 - Passwords are sent directly to Supabase Auth over HTTPS. The WMS does not store or log passwords.
 - Access and refresh tokens are stored in Secure, HttpOnly, SameSite=Lax cookies; they are not exposed to browser JavaScript or localStorage.
 - The server validates the authenticated Supabase user and the fixed administrator email before serving live shipment lookups.
