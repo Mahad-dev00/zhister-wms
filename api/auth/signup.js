@@ -12,7 +12,8 @@ module.exports = async function handler(req, res) {
   if (password.length < 12 || password.length > 128) return res.status(400).json({ error: "Use a password between 12 and 128 characters." });
 
   try {
-    const { response, data } = await authRequest("signup", {
+    const redirectTo = new URL(req.headers.origin).origin + "/";
+    const { response, data } = await authRequest("signup?redirect_to=" + encodeURIComponent(redirectTo), {
       method: "POST",
       body: JSON.stringify({
         email, password,
