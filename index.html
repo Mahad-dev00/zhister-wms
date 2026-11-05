@@ -55,6 +55,15 @@
 </section>
 <section class="page" id="page-orders">
  <div class="page-head"><div><div class="eyebrow">WORKSPACE / ORDERS</div><h1>Orders</h1><p class="muted">Search and manage orders already registered in Zhipster.</p></div><button class="btn" id="exportOrders">↓ Export CSV</button></div>
+ <section class="panel integration-lookup">
+  <div class="panel-head"><div><h2>Find a live Zhipster shipment</h2><p class="muted">Read-only lookup from the existing Zhipster system. This does not create or update a shipment.</p></div><span class="status-chip status-packing">LIVE API LOOKUP</span></div>
+  <form id="zhipsterLookupForm" class="filter-grid">
+   <label>Lookup type<select id="zhipsterLookupType"><option value="shipmentId">Shipment ID / shipment number</option><option value="orderNumber">Order number</option></select></label>
+   <label class="lookup-value">Identifier<input id="zhipsterLookupValue" name="identifier" placeholder="Enter shipment ID or order number" autocomplete="off" required></label>
+   <button class="btn primary" id="zhipsterLookupButton" type="submit">Search Zhipster</button>
+  </form>
+  <div id="zhipsterLookupResult" class="lookup-result" aria-live="polite"></div>
+ </section>
  <div class="panel filters"><div class="filter-grid"><label>Search orders<input id="orderSearch" placeholder="Order ID, number, customer or article…"></label><label>Status<select id="statusFilter"><option value="">All statuses</option><option>Open</option><option>Picking</option><option>Packing</option><option>Ready to ship</option><option>Shipped</option></select></label><label>Carrier<select id="carrierFilter"><option value="">All carriers</option><option>DHL</option><option>Bring</option><option>PostNord</option><option>Collection</option></select></label><button class="btn subtle" id="clearFilters">Reset filters</button></div></div>
  <div class="panel table-panel"><div class="panel-head"><div><h2>All orders <span class="count" id="orderCount">12</span></h2><p class="muted">Select an order to inspect its lines and warehouse progress.</p></div><span class="muted tiny">DEMO DATA</span></div><div class="table-wrap"><table><thead><tr><th>ORDER</th><th>CUSTOMER</th><th>CREATED</th><th>LINES</th><th>QTY</th><th>CARRIER</th><th>STATUS</th><th></th></tr></thead><tbody id="orderRows"></tbody></table></div></div>
 </section>
