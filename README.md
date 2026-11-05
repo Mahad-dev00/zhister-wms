@@ -53,3 +53,26 @@ The half-pallet profile is shown as a demo default: 45 kg, 60 × 80 × 95 cm. Co
 2. Implement read-only Zhipster sync and map shipment/order-line identifiers.
 3. Add safe write-back for package dimensions and label retrieval against the existing shipment.
 4. Add concurrency controls, role permissions, stock reconciliation, backups and printer testing before replacing Ongoing in production.
+
+## Read-only Zhipster integration (first implementation)
+
+The Orders page now has a live shipment lookup. It calls a server-side endpoint at `/api/shipment`, which forwards only read requests to the production Zhipster Shipment API. The API key is read from the server environment and is never included in browser JavaScript.
+
+### Configure on Vercel
+
+1. Import or connect this repository to a Vercel project (if it is not already connected).
+2. In **Project Settings → Environment Variables**, add `ZHIPSTER_API_KEY` with the Zhipster API key. Add it to the environments you intend to test.
+3. Redeploy after adding the variable.
+4. Open **Orders → Find a live Zhipster shipment** and search by shipment ID / shipment number or order number.
+
+The endpoint supports:
+- `GET /api/shipment?shipmentId=...` → Zhipster `GetShipment`
+- `GET /api/shipment?orderNumber=...` → Zhipster `GetShipmentsByOrderNumber`
+
+The proxy is read-only, rejects ambiguous identifiers, disables caching, and does not forward upstream error bodies to the browser.
+
+### Current integration boundary
+
+This is a live lookup and mapping preview, not a full synchronization. It deliberately does not import API results into the demo picking queue, change shipment statuses, reserve stock, or call any Zhipster write endpoint. The current sample shipment includes a `DropShipment` distribution model; that is not evidence of own-warehouse fulfillment and must not be turned into picking work automatically.
+
+The static prototype still needs a serverless-capable host such as Vercel for `/api/shipment`. Opening `index.html` directly or serving it with only `python -m http.server` will display the UI but cannot run the API proxy.
