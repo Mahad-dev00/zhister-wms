@@ -90,6 +90,64 @@ function renderShipping(){
 function csv(name,rows){let text=rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\n");let a=document.createElement("a"),url=URL.createObjectURL(new Blob(["\ufeff"+text],{type:"text/csv;charset=utf-8"}));a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}
 function exportOrders(){csv("zhister-orders-demo.csv",[["Order ID","Order number","Customer","Date","Carrier","Status","Article","Product","Quantity","Picked"],...orders.flatMap(o=>o.lines.map(l=>[o.id,o.number,o.customer,o.date,o.carrier,o.status,l.sku,product(l.sku).name,l.qty,l.picked]))])}
 function exportProducts(){csv("zhister-products-demo.csv",[["Article number","Product","Location","On hand","Allocated","Available"],...PRODUCTS.map(p=>[p.sku,p.name,p.location,p.stock,p.allocated,p.stock-p.allocated])])}
+
+function safeText(value){
+ return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+}
+function collectShipments(data){
+ if(Array.isArray(data))return data;
+ if(!data||typeof data!=="object")return [];
+ if(data.Shipment&&typeof data.Shipment==="object")return [data];
+ for(const key of ["Shipments","ShipmentList","shipments","shipmentList","Items","items"]){
+  if(Array.isArray(data[key]))return data[key].map(x=>x.Shipment?x:{Shipment:x});
+ }
+ return data.ShipmentKey||data.ShipmentNumber?[data]:[];
+}
+function shipmentCard(record,index){
+ const s=record.Shipment||record.shipment||record;
+ const dispatch=Array.isArray(s.DispatchOrders)?s.DispatchOrders:(Array.isArray(record.DispatchOrders)?record.DispatchOrders:[]);
+ const lines=dispatch.flatMap(d=>Array.isArray(d.DispatchOrderLines)?d.DispatchOrderLines:[]);
+ const shipmentStatus=s.ShipmentStatus||"Unknown";
+ const distribution=s.TransportInformation?.DistributionModel||s.DistributionModel||"Not supplied";
+ const orderRefs=dispatch.flatMap(d=>d.OrderReferences?.Orders||[]);
+ const orderNo=orderRefs.map(x=>x.OrderNumber).filter(Boolean).join(", ")||s.ShipmentNumber||"—";
+ const lineRows=lines.length?lines.map(l=>({article:l.BuyersArticleNumber||l.SuppliersArticleNumber||l.ArticleID||"—",description:l.ArticleDescription||"—",qty:l.RequestedQuantity??l.DispatchedQuantity??l.ConfirmedQuantity??"—",status:l.DispatchLineStatus||"—"})):[];
+ return `<article class="live-shipment-card">
+  <div class="live-shipment-head"><div><span class="eyebrow">ZHIPSTER SHIPMENT ${index+1}</span><h3>${safeText(s.ShipmentNumber||s.ShipmentKey||"Shipment")}</h3></div><span class="status-chip status-open">${safeText(shipmentStatus)}</span></div>
+  <div class="live-shipment-grid">
+   <div><small>Shipment ID</small><strong>${safeText(s.ShipmentKey||"—")}</strong></div>
+   <div><small>Order reference</small><strong>${safeText(orderNo)}</strong></div>
+   <div><small>Distribution model</small><strong>${safeText(distribution)}</strong></div>
+   <div><small>Dispatch orders</small><strong>${dispatch.length}</strong></div>
+  </div>
+  ${lineRows.length?`<div class="table-wrap"><table><thead><tr><th>ARTICLE</th><th>DESCRIPTION</th><th>REQUESTED QTY</th><th>LINE STATUS</th></tr></thead><tbody>${lineRows.map(l=>`<tr><td><strong>${safeText(l.article)}</strong></td><td>${safeText(l.description)}</td><td>${safeText(l.qty)}</td><td>${safeText(l.status)}</td></tr>`).join("")}</tbody></table></div>`:`<p class="muted">No dispatch order lines were present in this response.</p>`}
+  <p class="lookup-caution">Read-only preview. Warehouse picking is not started automatically. Confirm that this shipment is fulfilled from your own warehouse before creating WMS work.</p>
+ </article>`;
+}
+async function lookupZhipster(event){
+ event.preventDefault();
+ const type=$("#zhipsterLookupType").value;
+ const value=$("#zhipsterLookupValue").value.trim();
+ const result=$("#zhipsterLookupResult"),button=$("#zhipsterLookupButton");
+ if(!value){result.textContent="Enter an identifier first.";return}
+ button.disabled=true;button.textContent="Searching…";result.textContent="Contacting Zhipster…";
+ try{
+  const params=new URLSearchParams({[type]:value});
+  const response=await fetch(`/api/shipment?${params.toString()}`,{headers:{Accept:"application/json"},cache:"no-store"});
+  const body=await response.json();
+  if(!response.ok)throw new Error(body.error||`Lookup failed (HTTP ${response.status}).`);
+  if(body.found===false){result.innerHTML='<p class="lookup-empty">No shipment was found for this identifier.</p>';return}
+  const shipments=collectShipments(body.data);
+  if(!shipments.length){result.innerHTML='<p class="lookup-empty">Zhipster returned data, but no shipment record could be identified in the response. The raw response is not shown.</p>';return}
+  result.innerHTML=shipments.map(shipmentCard).join("");
+ }catch(error){
+  result.innerHTML=`<p class="lookup-error">${safeText(error.message||"Could not complete the lookup.")}</p>`;
+ }finally{
+  button.disabled=false;button.textContent="Search Zhipster";
+ }
+}
+$("#zhipsterLookupForm").addEventListener("submit",lookupZhipster);
+
 $("#orderSearch").oninput=renderOrders;$("#statusFilter").onchange=renderOrders;$("#carrierFilter").onchange=renderOrders;$("#clearFilters").onclick=()=>{$("#orderSearch").value="";$("#statusFilter").value="";$("#carrierFilter").value="";renderOrders()};
 $("#pickSearch").oninput=renderPicking;$("#locationFilter").onchange=renderPicking;$("#pickStatus").onchange=renderPicking;$("#productSearch").oninput=renderProducts;$("#productLocation").onchange=renderProducts;
 $("#exportOrders").onclick=exportOrders;$("#reportOrdersExport").onclick=exportOrders;$("#exportProducts").onclick=exportProducts;$("#reportProductsExport").onclick=exportProducts;
