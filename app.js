@@ -103,6 +103,32 @@ function collectShipments(data){
  }
  return data.ShipmentKey||data.ShipmentNumber?[data]:[];
 }
+
+const LIVE_SHIPMENTS_KEY="zhister-wms-live-shipment-index-v1";
+let liveShipments=JSON.parse(localStorage.getItem(LIVE_SHIPMENTS_KEY)||"[]");
+function liveShipmentSearchText(record){
+ const s=record.Shipment||record.shipment||record;
+ const dispatch=Array.isArray(s.DispatchOrders)?s.DispatchOrders:(record.DispatchOrders||[]);
+ const lines=dispatch.flatMap(d=>Array.isArray(d.DispatchOrderLines)?d.DispatchOrderLines:[]);
+ const orderNumbers=dispatch.flatMap(d=>(d.OrderReferences?.Orders||[]).map(x=>x.OrderNumber));
+ return [s.ShipmentNumber,s.ShipmentStatus,s.TransportInformation?.ShippingReference,s.TransportInformation?.DeliveryReference,s.TransportInformation?.DistributionModel,...orderNumbers,...lines.flatMap(l=>[l.SuppliersArticleNumber,l.BuyersArticleNumber,l.ManufacturersArticleNumber,l.ArticleDescription,l.DispatchLineStatus])].join(" ").toLowerCase();
+}
+function rememberLiveShipments(records){
+ const byKey=new Map(liveShipments.map(x=>{const s=x.Shipment||x.shipment||x;return [s.ShipmentKey||s.ShipmentNumber,x]}));
+ records.forEach(x=>{const s=x.Shipment||x.shipment||x;const key=s.ShipmentKey||s.ShipmentNumber;if(key)byKey.set(key,x)});
+ liveShipments=[...byKey.values()];
+ localStorage.setItem(LIVE_SHIPMENTS_KEY,JSON.stringify(liveShipments));
+ renderLiveShipmentIndex();
+}
+function renderLiveShipmentIndex(){
+ const host=$("#zhipsterLookupResult");if(!host)return;
+ const q=($("#liveItemSearch")?.value||"").trim().toLowerCase();
+ const matches=liveShipments.filter(x=>!q||liveShipmentSearchText(x).includes(q));
+ const count=$("#liveShipmentCount");if(count)count.textContent=matches.length+" matching / "+liveShipments.length+" retrieved";
+ if(!liveShipments.length){host.innerHTML='<p class="lookup-empty">No live shipments retrieved yet. Search an Order Number above to build this browser index.</p>';return}
+ host.innerHTML=matches.length?matches.map(shipmentCard).join(""):'<p class="lookup-empty">No retrieved shipment lines match this search.</p>';
+}
+
 function classifyShipment(shipment,dispatch,lines){
  const model=String(shipment.TransportInformation?.DistributionModel||shipment.DistributionModel||"").trim();
  const normalized=model.toLowerCase().replace(/[^a-z]/g,"");
@@ -154,7 +180,8 @@ async function lookupZhipster(event){
   if(body.found===false){result.innerHTML='<p class="lookup-empty">No shipment was found for this identifier.</p>';return}
   const shipments=collectShipments(body.data);
   if(!shipments.length){result.innerHTML='<p class="lookup-empty">Zhipster returned data, but no shipment record could be identified in the response. The raw response is not shown.</p>';return}
-  result.innerHTML=shipments.map(shipmentCard).join("");
+  rememberLiveShipments(shipments);
+  toast("Retrieved "+shipments.length+" shipment(s).");
  }catch(error){
   result.innerHTML=`<p class="lookup-error">${safeText(error.message||"Could not complete the lookup.")}</p>`;
  }finally{
@@ -162,6 +189,8 @@ async function lookupZhipster(event){
  }
 }
 $("#zhipsterLookupForm").addEventListener("submit",lookupZhipster);
+$("#liveItemSearch").addEventListener("input",renderLiveShipmentIndex);
+renderLiveShipmentIndex();
 
 $("#orderSearch").oninput=renderOrders;$("#statusFilter").onchange=renderOrders;$("#carrierFilter").onchange=renderOrders;$("#clearFilters").onclick=()=>{$("#orderSearch").value="";$("#statusFilter").value="";$("#carrierFilter").value="";renderOrders()};
 $("#pickSearch").oninput=renderPicking;$("#locationFilter").onchange=renderPicking;$("#pickStatus").onchange=renderPicking;$("#productSearch").oninput=renderProducts;$("#productLocation").onchange=renderProducts;
