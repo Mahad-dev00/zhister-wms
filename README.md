@@ -76,6 +76,27 @@ This is a live lookup and mapping preview, not a full synchronization. It delibe
 
 The static prototype still needs a serverless-capable host such as Vercel for `/api/shipment`. Opening `index.html` directly or serving it with only `python -m http.server` will display the UI but cannot run the API proxy.
 
+## Administrator authentication (Preview)
+
+The Preview branch now has a Supabase Auth sign-in gate.
+
+- The only authorised account is `mahad.warsame.work@gmail.com` (display name Mahad).
+- First-time setup: use **Create your account** on the Preview login screen, then confirm the verification email before signing in.
+- Passwords are sent directly to Supabase Auth over HTTPS. The WMS does not store or log passwords.
+- Access and refresh tokens are stored in Secure, HttpOnly, SameSite=Lax cookies; they are not exposed to browser JavaScript or localStorage.
+- The server validates the authenticated Supabase user and the fixed administrator email before serving live shipment lookups.
+- The signup endpoint only permits the designated administrator email. Do not loosen this allowlist without implementing managed user roles and invitations.
+
+Required Preview environment variables:
+- `SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEY` (used by server-side Auth requests; safe to expose, but this implementation does not expose it to browser code)
+- `SUPABASE_SERVICE_ROLE_KEY` remains server-side only and is not used by the browser or the Auth endpoints.
+- `ZHIPSTER_API_KEY` remains server-side only.
+
+Authentication endpoints: `POST /api/auth/signup`, `POST /api/auth/login`, `GET /api/auth/session`, and `POST /api/auth/logout`.
+
+**Important current boundary:** this commit protects the WMS UI and the existing live Zhipster lookup. The warehouse screens still use their prototype/sample records and browser localStorage. The existing private `wms` schema is not yet powering picking, packing, stock, or dispatch screens. Database-backed warehouse operations are the next implementation stage; this authentication work does not imply that data migration or persistent WMS operations are complete.
+
 ## Persistent WMS database
 
 The Supabase project `Rerso-wms` now has a private `wms` schema containing:
