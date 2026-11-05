@@ -90,7 +90,7 @@ body:not(.authenticated) .app, body:not(.authenticated) #modal, body:not(.authen
 </section>
 <section class="page" id="page-orders">
  <div class="page-head"><div><div class="eyebrow">WORKSPACE / ORDERS</div><h1>Orders</h1><p class="muted">Imported Zhipster shipments saved in WMS for warehouse review.</p></div><button class="btn" id="exportOrders">↓ Export CSV</button></div>
- <div class="panel filters"><div class="filter-grid"><label>Search orders<input id="orderSearch" placeholder="Order ID, number, customer or article…"></label><label>Warehouse eligibility<select id="statusFilter"><option value="">All eligibility states</option><option value="needs_review">Needs review</option><option value="eligible">Eligible</option><option value="not_eligible">Not eligible</option><option value="on_hold">On hold</option></select></label><button class="btn subtle" id="clearFilters">Reset filters</button></div></div>
+ <div class="panel filters"><div class="filter-grid"><label>Search orders<input id="orderSearch" placeholder="Shipment ID, order number, article or description…"></label><label>Warehouse eligibility<select id="statusFilter"><option value="">All eligibility states</option><option value="needs_review">Needs review</option><option value="eligible">Eligible</option><option value="not_eligible">Not eligible</option><option value="on_hold">On hold</option></select></label><button class="btn subtle" id="clearFilters">Reset filters</button></div></div>
  <div class="panel table-panel"><div class="panel-head"><div><h2>All orders <span class="count" id="orderCount">0</span></h2><p class="muted">Select a shipment to inspect its Zhipster status, article lines and warehouse eligibility.</p></div><span class="muted tiny">LIVE DATA ONLY</span></div><div class="table-wrap"><table><thead><tr><th>ORDER REFERENCE</th><th>ZHIPSTER STATUS</th><th>DISTRIBUTION MODEL</th><th>LINES</th><th>ELIGIBILITY</th><th></th></tr></thead><tbody id="orderRows"></tbody></table></div></div>
 </section>
 <section class="page" id="page-shipments">
@@ -104,7 +104,7 @@ body:not(.authenticated) .app, body:not(.authenticated) #modal, body:not(.authen
   <div class="live-index-tools"><label>Search retrieved orders and lines<input id="liveItemSearch" placeholder="Supplier Item No., buyer article no., description, order or shipment…"></label><span id="liveShipmentCount" class="muted">0 matching / 0 retrieved</span></div>
   <div id="zhipsterLookupResult" class="lookup-result" aria-live="polite"></div>
  </section>
- <div class="notice"><span>ⓘ</span><div><strong>Live data is separate from warehouse execution</strong><p>All returned distribution models and shipment statuses are displayed as Zhipster provides them. This browser index does not automatically create or exclude picking work.</p></div></div>
+ <div class="notice"><span>ⓘ</span><div><strong>Warehouse eligibility is not automatic</strong><p>Imported shipments are saved with their original Zhipster status. Unknown fulfilment models remain on hold for review; no picking task is created until warehouse eligibility is explicitly approved.</p></div></div>
 </section>
 <section class="page" id="page-picking">
  <div class="page-head"><div><div class="eyebrow">WORKSPACE / PICKING</div><h1>Picking</h1><p class="muted">Pick by article number while keeping each customer's order separate.</p></div><button class="btn primary" id="printPick">↗ Print pick list</button></div>
