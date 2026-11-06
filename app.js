@@ -401,7 +401,7 @@ function renderPicking(){
   const w=s.warehouse_work||{},task=w.pick_task||{},c=s.customer||{};
   (s.shipment_lines||[]).forEach(l=>{
    const pl=(task.lines||[]).find(x=>x.shipment_line_id===l.id);if(!pl)return;
-   if(locationFilter==="A1")return;
+   if(locationFilter&&locationForLine(l)!==locationFilter)return;
    const sku=l.supplier_article_number||l.buyer_article_number||"Uncoded";
    const text=[sku,l.buyer_article_number,l.description].join(" ").toLowerCase();
    const done=Number(pl.quantity_picked)>=Number(pl.quantity_to_pick);
