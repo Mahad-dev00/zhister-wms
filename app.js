@@ -59,7 +59,7 @@ function renderOperations(){
   html+='<div class="table-wrap"><table class="ops-lines"><thead><tr><th>SUPPLIER ITEM NO.</th><th>BUYER ARTICLE NO.</th><th>DESCRIPTION</th><th>ORDERED QTY</th><th>CONFIRMED</th><th>DISPATCHED</th><th>PICKED / ACTION</th></tr></thead><tbody>';
   lines.forEach(l=>{
    const pl=taskLines.find(x=>x.shipment_line_id===l.id),toPick=Number(pl?.quantity_to_pick??l.requested_quantity??0),picked=Number(pl?.quantity_picked||0);
-   html+='<tr><td><strong>'+safeText(l.supplier_article_number||"—")+'</strong></td><td>'+safeText(l.buyer_article_number||"—")+'</td><td>'+safeText(l.description||"—")+'</td><td class="ops-qty">'+safeText(l.requested_quantity??"—")+'</td><td>'+safeText(l.confirmed_quantity??"—")+'</td><td>'+safeText(l.dispatched_quantity??"—")+'</td><td>';
+   html+='<tr><td><strong>'+safeText(l.supplier_article_number||"—")+'</strong></td><td>'+safeText(l.buyer_article_number||"—")+'</td><td>'+safeText(l.description||"—")+'</td><td class="ops-qty"><span class="ops-quantity-number">'+safeText(l.requested_quantity??"—")+'</span><span class="ops-quantity-label">PCS ORDERED</span></td><td>'+safeText(l.confirmed_quantity??"—")+'</td><td>'+safeText(l.dispatched_quantity??"—")+'</td><td>';
    if(pl&&["open","in_progress"].includes(task.status))html+='<div class="ops-pick-control"><input type="number" min="0" max="'+toPick+'" step="any" value="'+picked+'" id="picked-'+l.id+'"><button class="btn subtle" data-save-pick="'+l.id+'" data-task="'+task.id+'">Save</button><small>of '+toPick+'</small></div>';
    else if(pl)html+=picked+' / '+toPick;else html+='—';
    html+='</td></tr>';
