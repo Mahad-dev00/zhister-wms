@@ -193,6 +193,24 @@ async function lookupZhipster(event){
  }
 }
 $("#zhipsterLookupForm").addEventListener("submit",lookupZhipster);
+$("#bulkSyncButton").addEventListener("click",async()=>{
+ const button=$("#bulkSyncButton"),result=$("#bulkSyncResult");
+ button.disabled=true;button.textContent="Importing…";
+ result.textContent="Checking Zhipster for shipments dated today and importing them into the WMS…";
+ try{
+  const response=await fetch("/api/wms/sync",{method:"POST",headers:{Accept:"application/json"},cache:"no-store"});
+  const body=await response.json();
+  if(!response.ok)throw new Error(body.error||`Import failed (HTTP ${response.status}).`);
+  await loadWmsShipments();
+  result.innerHTML=`<p class="lookup-success">Import finished: ${Number(body.discovered||0)} discovered, ${Number(body.imported||0)} imported, ${Number(body.failed||0)} failed. Date window starts ${safeText(body.windowStart||"today")}.</p>`;
+  if(body.failed)result.insertAdjacentHTML("beforeend",`<p class="lookup-error">${safeText(body.errors?.map(e=>e.message).join("; ")||"Some shipments could not be imported.")}</p>`);
+  toast(`Zhipster import finished: ${Number(body.imported||0)} imported.`);
+ }catch(error){
+  result.innerHTML=`<p class="lookup-error">${safeText(error.message||"Could not import new Zhipster orders.")}</p>`;
+ }finally{
+  button.disabled=false;button.textContent="↓ Import new orders";
+ }
+});
 $("#liveItemSearch").addEventListener("input",renderLiveShipmentIndex);
 renderLiveShipmentIndex();
 
