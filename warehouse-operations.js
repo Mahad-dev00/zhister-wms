@@ -30,6 +30,37 @@
     return body.result;
   }
 
+  const originalOverview = renderOverview;
+  renderOverview = function () {
+    originalOverview();
+    const today = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Stockholm", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+    const todayCount = wmsShipments.filter(function (s) {
+      return s.created_at && new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Stockholm", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(s.created_at)) === today;
+    }).length;
+    const reviewCount = wmsShipments.filter(function (s) { return s.eligibility === "needs_review"; }).length;
+    const pickingCount = wmsShipments.filter(function (s) { return ["ready_to_pick", "picking"].includes(getWork(s).status); }).length;
+    const excludedCount = wmsShipments.filter(function (s) { return s.eligibility === "not_eligible"; }).length;
+    const firstLabel = document.querySelector("#page-overview .stat-card:first-child .stat-top span");
+    const pickLabel = document.querySelector("#page-overview .stat-card:nth-child(3) .stat-top span");
+    if (firstLabel) firstLabel.textContent = "New orders today";
+    if (pickLabel) pickLabel.textContent = "Open picking tasks";
+    if ($("#statOpen")) $("#statOpen").textContent = todayCount;
+    if ($("#statPick")) $("#statPick").textContent = reviewCount;
+    if ($("#statShip")) $("#statShip").textContent = pickingCount;
+    if ($("#flowOpen")) $("#flowOpen").textContent = wmsShipments.length;
+    if ($("#flowPicking")) $("#flowPicking").textContent = reviewCount;
+    if ($("#flowPacking")) $("#flowPacking").textContent = pickingCount;
+    if ($("#flowShip")) $("#flowShip").textContent = excludedCount;
+    const notice = document.querySelector("#page-overview .notice");
+    if (notice) {
+      if (wmsShipments.length) notice.style.display = "none";
+      else {
+        notice.style.display = "flex";
+        notice.innerHTML = '<span>ⓘ</span><div><strong>Automatic order discovery is awaiting API verification</strong><p>Individual orders can still be retrieved under Live orders. The scheduled importer needs the exact Zhipster shipment-list endpoint before it can discover every new order automatically.</p></div>';
+      }
+    }
+  };
+
   const originalLoad = loadWmsShipments;
   loadWmsShipments = async function () {
     await originalLoad();
@@ -216,7 +247,7 @@
   const stockNotice = document.querySelector("#page-products .panel-head .muted");
   if (stockNotice) stockNotice.textContent = "Reference product catalogue only. Current stock quantities are demo values and must not be used for live allocation.";
   const syncPill = document.querySelector(".sync-pill");
-  if (syncPill) syncPill.innerHTML = '<i></i> Warehouse execution · Zhipster source';
+  if (syncPill) syncPill.innerHTML = '<i></i> Warehouse live · auto-discovery pending';
 
   loadWmsShipments();
 })();
