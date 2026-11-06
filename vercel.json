@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/zhipster-sync",
-      "schedule": "*/5 * * * *"
+      "schedule": "55 23 * * *"
     }
   ]
 }
