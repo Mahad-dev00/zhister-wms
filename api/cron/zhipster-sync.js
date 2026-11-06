@@ -8,7 +8,7 @@ module.exports = async function handler(req, res) {
 
   const expected = process.env.CRON_SECRET;
   const authorization = String(req.headers.authorization || "");
-  const supplied = authorization.startsWith("Bearer ") ? authorization.slice(7) : String(req.headers["x-cron-secret"] || "");
+  const supplied = authorization.startsWith("Bearer ") ? authorization.slice(7) : String(req.headers["x-cron-secret"] || req.query?.secret || "");
   if (!expected || supplied !== expected) {
     return res.status(401).json({ error: "Unauthorized" });
   }
