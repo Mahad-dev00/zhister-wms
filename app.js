@@ -695,3 +695,21 @@ async function runWarehouseAction(payload){
 }
 $("#productLocation")?.addEventListener("change",renderProducts);
 loadWmsShipments();
+
+async function submitStockMovement({articleCode,locationCode,quantityDelta,movementType,reference,note,messageId,form}){
+ const submit=form?.querySelector('button[type="submit"]');if(submit)submit.disabled=true;
+ try{
+  const response=await fetch("/api/wms/inventory",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({articleCode,locationCode,quantityDelta,movementType,reference,note}),cache:"no-store"});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(data.error||"Stock movement could not be saved.");
+  stockMessage(messageId,"Stock ledger updated successfully.");
+  if(form)form.reset();
+  await loadWmsInventory();toast("Stock movement recorded.");
+ }catch(error){stockMessage(messageId,error.message||"Could not save stock movement.",true)}
+ finally{if(submit)submit.disabled=false}
+}
+function exportProducts(){
+ csv("zhister-wms-articles-and-stock.csv",[["Article","Supplier article","Buyer article","Description","Location","On hand","Allocated","Available"],...wmsInventory.map(a=>[a.article_code,a.supplier_article_number,a.buyer_article_number,a.description,a.location_code,a.on_hand,a.allocated,a.available])]);
+}
+$("#exportProducts")?.addEventListener("click",exportProducts);
+$("#reportProductsExport")?.addEventListener("click",exportProducts);
