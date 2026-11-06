@@ -42,3 +42,15 @@
 .live-lines-heading h4{font:750 13px Manrope;color:#26364d;margin:0 0 3px}
 .live-lines-heading p{font-size:10px;color:#8a96a7;margin:0}
 @media(max-width:700px){.live-customer-profile{align-items:flex-start;flex-direction:column;padding:15px}.live-customer-contact{justify-content:flex-start;width:100%}.live-customer-contact a{flex:1;min-width:0}.live-customer-identity h4{font-size:16px}.live-drop-point{align-items:flex-start}.live-parties{align-items:flex-start;flex-direction:column;gap:5px}.live-parties strong{margin:0 0 5px}}
+
+
+/* Compact operations-first interface */
+.stat-foot,.flow-copy small,.quick-actions small,.sidebar-bottom .user-meta small,.notice,.auth-foot{display:none!important}
+.stat-value{margin-bottom:0}
+.page-head{margin-bottom:20px}
+.panel-head{margin-bottom:12px}
+.workspace{margin-bottom:20px}
+.nav-label{padding-bottom:6px}
+.content{padding-top:26px}
+.sync-pill i{background:#20a36b}
+.lookup-caution{display:none!important}
