@@ -1,0 +1,12 @@
+name: Probe Zhipster list endpoints
+on:
+  push:
+    paths:
+      - api/cron/zhipster-probe.js
+      - .github/workflows/zhipster-probe.yml
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe
+        run: curl --fail-with-body --silent --show-error "https://rerso-wms.vercel.app/api/cron/zhipster-probe"
