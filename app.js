@@ -39,6 +39,23 @@ function renderOrders(){
  $("#orderRows").innerHTML=rows.map(s=>{const c=s.customer||{},lines=s.shipment_lines||[];return `<tr><td><button class="order-link" data-wms-shipment="${safeText(s.id)}">${safeText(s.external_order_number||"—")}</button><span class="sub-cell">${safeText(s.external_shipment_number||s.external_shipment_id)}</span></td><td>${safeText(s.source_status||"Unknown")}</td><td>${safeText(s.distribution_model||"Not supplied")}</td><td><strong>${lines.length}</strong></td><td>${safeText(c.name||"Not supplied")}</td><td>${safeText([c.postal_code,c.city].filter(Boolean).join(" ")||"Not supplied")}</td><td>${safeText(s.eligibility||"needs_review")}</td><td><button class="text-btn" data-wms-shipment="${safeText(s.id)}">Details →</button></td></tr>`}).join("")||'<tr><td colspan="7" class="muted">No imported shipments match. Go to Live orders and search an existing Zhipster Order Number.</td></tr>';
  $$("[data-wms-shipment]").forEach(b=>b.onclick=()=>showWmsShipment(b.dataset.wmsShipment));
 }
+function workflowLabel(s){
+ const work=s.warehouse_work||{},task=work.pick_task||{};
+ const eligibility=s.eligibility||work.eligibility;
+ if(eligibility==="not_eligible")return "Excluded";
+ if(eligibility==="on_hold")return "On hold";
+ if(work.status==="dispatched"||(work.dispatches||[]).some(d=>d.status==="handed_over"))return "Shipped";
+ if(["ready_to_dispatch","packing"].includes(work.status))return "Packed";
+ if(work.status==="picking"||task.status==="in_progress")return "Picking";
+ if(task.status==="completed")return "Picked";
+ if(work.status==="ready_to_pick"||eligibility==="eligible")return "Allocated";
+ return "New";
+}
+function wmsBadge(s){
+ const label=workflowLabel(s);
+ const css=({"New":"status-open","On hold":"status-open","Excluded":"status-open","Allocated":"status-ready","Picking":"status-picking","Picked":"status-packing","Packed":"status-packing","Shipped":"status-shipped"})[label]||"status-open";
+ return '<span class="status-chip '+css+'">'+safeText(label)+'</span>';
+}
 function showWmsShipment(id){
  const s=wmsShipments.find(x=>x.id===id);if(!s)return;
  const c=s.customer||{},lines=s.shipment_lines||[];
