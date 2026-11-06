@@ -552,3 +552,146 @@ function renderAll(){
 }
 loadWmsShipments();
 renderProducts();
+
+
+let wmsInventory=[];
+let wmsMovements=[];
+async function loadWmsInventory(){
+ try{
+  const response=await fetch("/api/wms/inventory",{headers:{Accept:"application/json"},cache:"no-store"});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(data.error||"Could not load inventory.");
+  wmsInventory=Array.isArray(data.inventory)?data.inventory:[];
+  wmsMovements=Array.isArray(data.movements)?data.movements:[];
+  renderProducts();renderStock();renderMovements();renderLocations();renderStockForms();
+ }catch(error){
+  const alert=$("#appAlert");if(alert){alert.hidden=false;alert.className="inline-alert error";alert.textContent=error.message||"Inventory data could not be loaded."}
+  const stock=$("#stockRows");if(stock)stock.innerHTML='<tr><td colspan="7"><div class="table-empty"><strong>Inventory unavailable</strong><span>Check the database connection and reload.</span></div></td></tr>';
+ }
+}
+async function loadWmsShipments(){
+ const body=$("#orderRows");
+ ordersLoading=true;
+ if(body&&!wmsShipments.length)body.innerHTML='<tr><td colspan="8"><div class="table-loading"><i></i><i></i><i></i></div>Loading warehouse orders…</td></tr>';
+ try{
+  const response=await fetch("/api/wms/shipments",{headers:{Accept:"application/json"},cache:"no-store"});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(data.error||"Could not load warehouse orders.");
+  wmsShipments=Array.isArray(data.shipments)?data.shipments:[];
+  ordersLoading=false;renderOverview();renderOrders();renderOperations();renderPicking();renderPacking();renderShipping();
+  $("#reportOrders").textContent=wmsShipments.length;
+  await loadWmsInventory();
+  const alert=$("#appAlert");if(alert){alert.hidden=true;alert.textContent=""}
+ }catch(error){
+  ordersLoading=false;const alert=$("#appAlert");if(alert){alert.hidden=false;alert.className="inline-alert error";alert.textContent=error.message||"Warehouse data could not be loaded."}
+  renderOrders();
+ }
+}
+function go(page){
+ $$(".page").forEach(p=>p.classList.toggle("active",p.id==="page-"+page));
+ $$(".nav-item").forEach(n=>n.classList.toggle("active",n.dataset.page===page));
+ $("#crumb").textContent=page==="shipments"?"Import order":page==="movements"?"Stock movements":page[0].toUpperCase()+page.slice(1);
+ $("#sidebar").classList.remove("open");
+ if(page==="packing")renderPacking();
+ if(page==="picking")renderPicking();
+ if(page==="shipping")renderShipping();
+ if(page==="products")renderProducts();
+ if(page==="stock")renderStock();
+ if(page==="movements")renderMovements();
+ if(page==="locations")renderLocations();
+ if(page==="receiving"||page==="adjustments")renderStockForms();
+}
+function renderProducts(){
+ const q=($("#productSearch")?.value||"").trim().toLowerCase(),loc=$("#productLocation")?.value||"";
+ const rows=wmsInventory.filter(a=>(!loc||a.location_code===loc)&&[a.article_code,a.supplier_article_number,a.buyer_article_number,a.description].join(" ").toLowerCase().includes(q));
+ $("#productRows").innerHTML=rows.length?rows.map(a=>{
+  const shortage=Number(a.available)<0,none=Number(a.on_hand)<=0;
+  return '<tr><td><strong>'+safeText(a.article_code)+'</strong></td><td>'+safeText(a.description||"Description not supplied")+'</td><td><span class="status-chip wms-allocated">'+safeText(a.location_code)+'</span></td><td class="numeric">'+Number(a.on_hand)+'</td><td class="numeric '+(Number(a.allocated)>0?"stock-allocated":"")+'">'+Number(a.allocated)+'</td><td class="numeric '+(shortage||none?"stock-shortage":"")+'">'+Number(a.available)+'</td></tr>';
+ }).join(""):'<tr><td colspan="6"><div class="table-empty"><strong>No articles in the warehouse master</strong><span>Import an order from Zhipster to register its article numbers.</span></div></td></tr>';
+ const heading=$("#page-products .panel-head h2");if(heading)heading.innerHTML='Article catalogue <span class="count">'+wmsInventory.length+'</span>';
+ if($("#reportSkus"))$("#reportSkus").textContent=wmsInventory.length;
+ const total=wmsInventory.reduce((n,a)=>n+Number(a.on_hand||0),0);
+ if($("#reportStock"))$("#reportStock").textContent=total;
+}
+function renderStock(){
+ const host=$("#stockRows");if(!host)return;
+ const q=($("#stockSearch")?.value||"").trim().toLowerCase(),loc=$("#stockLocation")?.value||"";
+ const rows=wmsInventory.filter(a=>(!loc||a.location_code===loc)&&[a.article_code,a.description,a.supplier_article_number,a.buyer_article_number].join(" ").toLowerCase().includes(q));
+ $("#stockCount").textContent=rows.length;
+ host.innerHTML=rows.length?rows.map(a=>{
+  const on=Number(a.on_hand),allocated=Number(a.allocated),available=Number(a.available);
+  const status=available<0?"Shortage":on<=0?"No stock":available===0?"Fully allocated":"Available";
+  const cls=available<0||on<=0?"wms-hold":available===0?"wms-partial":"wms-packed";
+  return '<tr><td><strong>'+safeText(a.article_code)+'</strong></td><td>'+safeText(a.description||"—")+'</td><td>'+safeText(a.location_code)+'</td><td class="numeric">'+on+'</td><td class="numeric '+(allocated>0?"stock-allocated":"")+'">'+allocated+'</td><td class="numeric '+(available<=0?"stock-shortage":"")+'">'+available+'</td><td><span class="status-chip '+cls+'">'+status+'</span></td></tr>';
+ }).join(""):'<tr><td colspan="7"><div class="table-empty"><strong>No stock records found</strong><span>Import articles and record stock receipts to establish balances.</span></div></td></tr>';
+}
+function renderMovements(){
+ const host=$("#movementRows");if(!host)return;
+ const q=($("#movementSearch")?.value||"").trim().toLowerCase(),type=$("#movementTypeFilter")?.value||"";
+ const rows=wmsMovements.filter(m=>(!type||m.movement_type===type)&&[m.article_code,m.description,m.location_code,m.reference,m.note,m.movement_type].join(" ").toLowerCase().includes(q));
+ $("#movementCount").textContent=rows.length;
+ host.innerHTML=rows.length?rows.map(m=>{
+  const delta=Number(m.quantity_delta),typeLabel=String(m.movement_type).replace(/_/g," ");
+  return '<tr><td>'+fmtDate(m.created_at)+'</td><td><strong>'+safeText(m.article_code)+'</strong></td><td>'+safeText(m.description||"—")+'</td><td>'+safeText(m.location_code)+'</td><td><span class="status-chip '+(delta>0?"wms-packed":"wms-hold")+'">'+safeText(typeLabel)+'</span></td><td class="numeric '+(delta>0?"stock-in":"stock-out")+'">'+(delta>0?"+":"")+delta+'</td><td>'+safeText([m.reference,m.note].filter(Boolean).join(" · ")||"—")+'</td></tr>';
+ }).join(""):'<tr><td colspan="7"><div class="table-empty"><strong>No stock movements yet</strong><span>Receipts, adjustments and completed picks will appear here.</span></div></td></tr>';
+}
+function renderLocations(){
+ const units=wmsInventory.reduce((n,a)=>n+Number(a.on_hand||0),0);
+ if($("#locSkus"))$("#locSkus").textContent=wmsInventory.length;
+ if($("#locUnits"))$("#locUnits").textContent=units;
+ if($("#locationProducts"))$("#locationProducts").innerHTML=wmsInventory.length?wmsInventory.map(a=>'<div class="loc-product"><span><strong>'+safeText(a.article_code)+'</strong> · '+safeText(a.description||"")+'</span><span>'+Number(a.on_hand)+' on hand · '+Number(a.allocated)+' allocated</span></div>').join(""):'<div class="table-empty"><strong>No articles assigned yet</strong><span>Imported article numbers appear here. Stock balances begin at zero until received.</span></div>';
+}
+function renderStockForms(){
+ const options='<option value="">Select article</option>'+wmsInventory.map(a=>'<option value="'+safeText(a.article_code)+'">'+safeText(a.article_code+' · '+(a.description||""))+'</option>').join("");
+ ["#receiptArticle","#adjustArticle"].forEach(sel=>{const el=$(sel);if(!el)return;const current=el.value;el.innerHTML=options;if(wmsInventory.some(a=>a.article_code===current))el.value=current});
+}
+function stockMessage(id,text,error=false){
+ const el=$(id);if(!el)return;el.textContent=text;el.className="form-message "+(error?"error":"success");
+}
+async function submitStockMovement({articleCode,locationCode,quantityDelta,movementType,reference,note,messageId,form}){
+ try{
+  const response=await fetch("/api/wms/inventory",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({articleCode,locationCode,quantityDelta,movementType,reference,note}),cache:"no-store"});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(data.error||"Stock movement could not be saved.");
+  stockMessage(messageId,"Stock ledger updated successfully.");
+  if(form)form.reset();
+  await loadWmsInventory();
+  toast("Stock movement recorded.");
+ }catch(error){stockMessage(messageId,error.message||"Could not save stock movement.",true)}
+}
+$("#receiptForm")?.addEventListener("submit",e=>{
+ e.preventDefault();
+ const quantity=Number($("#receiptQuantity").value);
+ if(!Number.isFinite(quantity)||quantity<=0){stockMessage("#receiptMessage","Enter a positive received quantity.",true);return}
+ submitStockMovement({articleCode:$("#receiptArticle").value,locationCode:$("#receiptLocation").value,quantityDelta:quantity,movementType:"receipt",reference:$("#receiptReference").value,note:$("#receiptNote").value,messageId:"#receiptMessage",form:$("#receiptForm")});
+});
+$("#adjustmentForm")?.addEventListener("submit",e=>{
+ e.preventDefault();
+ const quantity=Number($("#adjustQuantity").value),reason=$("#adjustReason").value.trim();
+ if(!Number.isFinite(quantity)||quantity===0||!reason){stockMessage("#adjustmentMessage","Enter a non-zero quantity change and a reason.",true);return}
+ submitStockMovement({articleCode:$("#adjustArticle").value,locationCode:$("#adjustLocation").value,quantityDelta:quantity,movementType:"adjustment",reference:reason,note:$("#adjustNote").value,messageId:"#adjustmentMessage",form:$("#adjustmentForm")});
+});
+$("#stockSearch")?.addEventListener("input",renderStock);
+$("#stockLocation")?.addEventListener("change",renderStock);
+$("#stockReset")?.addEventListener("click",()=>{$("#stockSearch").value="";$("#stockLocation").value="";renderStock()});
+$("#movementSearch")?.addEventListener("input",renderMovements);
+$("#movementTypeFilter")?.addEventListener("change",renderMovements);
+$("#movementReset")?.addEventListener("click",()=>{$("#movementSearch").value="";$("#movementTypeFilter").value="";renderMovements()});
+$("#exportStock")?.addEventListener("click",()=>csv("zhister-wms-stock.csv",[["Article","Description","Location","On hand","Allocated","Available"],...wmsInventory.map(a=>[a.article_code,a.description,a.location_code,a.on_hand,a.allocated,a.available])]));
+$("#exportMovements")?.addEventListener("click",()=>csv("zhister-wms-stock-movements.csv",[["Date","Article","Description","Location","Movement type","Quantity change","Reference","Note"],...wmsMovements.map(m=>[m.created_at,m.article_code,m.description,m.location_code,m.movement_type,m.quantity_delta,m.reference,m.note])]));
+async function runWarehouseAction(payload){
+ const alert=$("#appAlert");
+ try{
+  const response=await fetch("/api/wms/shipments",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(payload),cache:"no-store"});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(data.error||"The warehouse update could not be saved.");
+  if(alert){alert.hidden=true;alert.textContent=""}
+  await loadWmsShipments();
+  toast("Warehouse update saved.");
+ }catch(error){
+  if(alert){alert.hidden=false;alert.className="inline-alert error";alert.textContent=error.message||"The warehouse update could not be saved."}
+  toast(error.message||"Could not save warehouse update.");
+ }
+}
+$("#productLocation")?.addEventListener("change",renderProducts);
+loadWmsShipments();
