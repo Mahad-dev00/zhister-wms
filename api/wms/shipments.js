@@ -16,9 +16,9 @@ async function requireAdmin(req, res) {
   const user = await getVerifiedAdmin(req, res, true);
   if (!user || !user.email_confirmed_at || String(user.email || "").toLowerCase() !== ADMIN_EMAIL) {
     res.status(401).json({ error: "Sign in with the authorised WMS administrator account." });
-    return false;
+    return null;
   }
-  return true;
+  return user;
 }
 
 function supabaseConfig() {
@@ -86,7 +86,8 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    if (!(await requireAdmin(req, res))) return;
+    const user = await requireAdmin(req, res);
+    if (!user) return;
 
     if (req.method === "GET") {
       const shipments = await rpc("list_wms_shipments", {});
@@ -98,6 +99,45 @@ module.exports = async function handler(req, res) {
     }
 
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
+    if (body.action === "review") {
+      const shipmentId = String(body.shipmentId || "").trim();
+      const eligibility = String(body.eligibility || "");
+      if (!/^[0-9a-f-]{36}$/i.test(shipmentId) || !["eligible","not_eligible","on_hold"].includes(eligibility)) {
+        return res.status(400).json({ error: "A valid shipment and eligibility decision are required." });
+      }
+      const result = await rpc("wms_review_shipment", {
+        p_shipment_id: shipmentId, p_eligibility: eligibility, p_actor: user.id,
+        p_reason: String(body.reason || "").slice(0, 500) || null
+      });
+      return res.status(200).json({ ok: true, result });
+    }
+    if (body.action === "pick") {
+      const pickTaskId = String(body.pickTaskId || "").trim();
+      const shipmentLineId = String(body.shipmentLineId || "").trim();
+      const quantity = Number(body.quantityPicked);
+      if (!/^[0-9a-f-]{36}$/i.test(pickTaskId) || !/^[0-9a-f-]{36}$/i.test(shipmentLineId) || !Number.isFinite(quantity) || quantity < 0) {
+        return res.status(400).json({ error: "Valid pick task, article line and picked quantity are required." });
+      }
+      const result = await rpc("wms_update_pick_line", {
+        p_pick_task_id: pickTaskId, p_shipment_line_id: shipmentLineId,
+        p_quantity_picked: quantity, p_actor: user.id
+      });
+      return res.status(200).json({ ok: true, result });
+    }
+    if (body.action === "pack") {
+      const workId = String(body.warehouseWorkId || "").trim();
+      const values = [body.weightKg, body.lengthCm, body.widthCm, body.heightCm].map(Number);
+      if (!/^[0-9a-f-]{36}$/i.test(workId) || values.some(v => !Number.isFinite(v) || v <= 0)) {
+        return res.status(400).json({ error: "Warehouse work and positive package weight and dimensions are required." });
+      }
+      const result = await rpc("wms_pack_shipment", {
+        p_warehouse_work_id: workId, p_package_type: String(body.packageType || "parcel").slice(0, 80),
+        p_weight_kg: values[0], p_length_cm: values[1], p_width_cm: values[2], p_height_cm: values[3],
+        p_actor: user.id
+      });
+      return res.status(200).json({ ok: true, result });
+    }
+
     const shipmentId = String(body.shipmentId || "").trim();
     const orderNumber = String(body.orderNumber || "").trim();
     if ((shipmentId && orderNumber) || (!shipmentId && !orderNumber)) {
