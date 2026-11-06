@@ -111,3 +111,22 @@ The Supabase project `Rerso-wms` now has a private `wms` schema containing:
 All nine tables have row-level security enabled. The schema is not granted to browser-facing `anon` or `authenticated` roles; database access must go through a protected server-side integration. No demo stock quantities or sample orders have been copied into the live database.
 
 The current database foundation does not yet synchronize shipments or power the existing demo screens. That is the next implementation step, after the server-side Supabase credential and access path are configured.
+
+
+## Persistent warehouse execution workflow
+
+The warehouse screens now use the private Supabase WMS schema rather than browser-local demo orders for operational work.
+
+- Incoming Zhipster shipments are retained in the WMS with their original source status and article lines.
+- Warehouse eligibility is a separate manual decision. Unknown fulfilment models remain on hold; DropShipment is blocked from picking.
+- Approving an eligible shipment creates persistent pick tasks and pick-task lines.
+- Picking quantities are saved per shipment line. Completed picking moves the work to packing.
+- Packing stores measured package type, weight and dimensions. Completed packing moves the work to ready for dispatch.
+- Dispatch preparation records the carrier and tracking reference. Confirming physical carrier handover records the shipment as dispatched in Zhister.
+- Warehouse actions create audit events. These actions do not write shipment changes back to Zhipster.
+
+### Automatic order discovery boundary
+
+The scheduled sync requires the exact, verified Zhipster shipment-list endpoint in the server-only environment variable `ZHIPSTER_SYNC_LIST_ENDPOINT`. A separate candidate-list variable is not treated as a verified endpoint. Do not select a candidate path without confirming it against the Zhipster Shipment API Swagger contract. The existing `GetShipment` and `GetShipmentsByOrderNumber` lookups remain available for individual shipment retrieval.
+
+The daily sync window uses the Europe/Stockholm calendar day. Until the list endpoint is verified and configured, automatic discovery cannot import all newly received orders. The scheduled job will report the missing endpoint rather than guessing an API route.
