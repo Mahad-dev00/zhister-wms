@@ -345,6 +345,7 @@ function renderOrders(){
  body.querySelectorAll("[data-open-order]").forEach(b=>b.onclick=()=>showWmsShipment(b.dataset.openOrder));
  body.querySelectorAll("[data-load-history]").forEach(b=>b.onclick=()=>loadShipmentHistory(b.dataset.loadHistory));
 }
+function locationForLine(line){const code=line.supplier_article_number||line.buyer_article_number||"";return wmsInventory.find(a=>a.article_code===code)?.location_code||"A1";}
 function orderDetailMarkup(s){
  const lines=s.shipment_lines||[],work=s.warehouse_work||{},task=work.pick_task||{},taskLines=task.lines||[];
  const packages=work.packages||[],dispatches=work.dispatches||[];
@@ -710,4 +711,29 @@ async function submitStockMovement({articleCode,locationCode,quantityDelta,movem
 }
 function exportProducts(){
  csv("zhister-wms-articles-and-stock.csv",[["Article","Supplier article","Buyer article","Description","Location","On hand","Allocated","Available"],...wmsInventory.map(a=>[a.article_code,a.supplier_article_number,a.buyer_article_number,a.description,a.location_code,a.on_hand,a.allocated,a.available])]);
+}
+
+function renderOverview(){
+ const dateNode=$("#page-overview .page-head .eyebrow");
+ if(dateNode)dateNode.textContent=new Intl.DateTimeFormat("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(new Date()).toUpperCase();
+ const total=wmsShipments.length;
+ const review=wmsShipments.filter(s=>["New","On hold"].includes(workflowLabel(s))).length;
+ const eligible=wmsShipments.filter(s=>["Allocated","Picking"].includes(workflowLabel(s))).length;
+ const excluded=wmsShipments.filter(s=>workflowLabel(s)==="Excluded").length;
+ const shipped=wmsShipments.filter(s=>workflowLabel(s)==="Shipped").length;
+ $("#statOpen").textContent=total;$("#statPick").textContent=review;$("#statShip").textContent=eligible;
+ $("#statPicked").textContent=wmsShipments.reduce((n,s)=>n+(s.shipment_lines||[]).length,0);
+ $("#flowOpen").textContent=total;$("#flowPicking").textContent=review;$("#flowPacking").textContent=eligible;$("#flowShip").textContent=excluded;
+ const bars=$$("#page-overview .flow-row .progress i"),den=Math.max(total,1);
+ if(bars[0])bars[0].style.width="100%";
+ if(bars[1])bars[1].style.width=(review/den*100)+"%";
+ if(bars[2])bars[2].style.width=(eligible/den*100)+"%";
+ if(bars[3])bars[3].style.width=(excluded/den*100)+"%";
+ const empty=$("#overviewEmptyNotice");if(empty)empty.hidden=total>0;
+ $("#recentRows").innerHTML=wmsShipments.slice(0,5).map(s=>'<tr><td><button class="order-link" data-wms-shipment="'+safeText(s.id)+'">'+safeText(s.external_order_number||s.external_shipment_number||s.external_shipment_id)+'</button><span class="sub-cell">'+safeText(s.external_shipment_number||s.external_shipment_id)+'</span></td><td>'+safeText(s.source_status||"Unknown")+'</td><td>'+safeText(s.distribution_model||"Not supplied")+'</td><td class="numeric">'+(s.shipment_lines||[]).length+'</td><td>'+wmsBadge(s)+'</td><td><button class="text-btn" data-wms-shipment="'+safeText(s.id)+'">Details →</button></td></tr>').join("")||'<tr><td colspan="6" class="muted">No shipments imported yet. Use Import order to retrieve an existing Zhipster order.</td></tr>';
+ $("#orderNavCount").textContent=total;
+ $$("#recentRows [data-wms-shipment]").forEach(b=>b.onclick=()=>showWmsShipment(b.dataset.wmsShipment));
+ $("#reportOrders").textContent=total;
+ if($("#reportSkus"))$("#reportSkus").textContent=wmsInventory.length;
+ if($("#reportStock"))$("#reportStock").textContent=wmsInventory.reduce((n,a)=>n+Number(a.on_hand||0),0);
 }
