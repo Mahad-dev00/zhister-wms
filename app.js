@@ -499,3 +499,51 @@ function bindEnterpriseControls(){
  $("#sidebarCollapse")?.addEventListener("click",()=>document.body.classList.toggle("sidebar-collapsed"));
 }
 bindEnterpriseControls();
+
+
+async function runWarehouseAction(payload){
+ const alert=$("#appAlert");
+ try{
+  const response=await fetch("/api/wms/shipments",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(payload),cache:"no-store"});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(data.error||"The warehouse update could not be saved.");
+  if(alert){alert.hidden=true;alert.textContent=""}
+  await loadWmsShipments();
+  toast("Warehouse update saved.");
+ }catch(error){
+  if(alert){alert.hidden=false;alert.className="inline-alert error";alert.textContent=error.message||"The warehouse update could not be saved."}
+  toast(error.message||"Could not save warehouse update.");
+ }
+}
+function getImportedArticles(){
+ const map=new Map();
+ wmsShipments.forEach(s=>(s.shipment_lines||[]).forEach(l=>{
+  const supplier=l.supplier_article_number||"",buyer=l.buyer_article_number||"";
+  const key=supplier||buyer||("line:"+l.id);
+  if(!map.has(key))map.set(key,{sku:key,supplier,buyer,name:l.description||"Description not supplied",orders:0,ordered:0});
+  const a=map.get(key);a.orders++;a.ordered+=Number(l.requested_quantity||0);
+  if((!a.name||a.name==="Description not supplied")&&l.description)a.name=l.description;
+ }));
+ return [...map.values()].sort((a,b)=>a.sku.localeCompare(b.sku,undefined,{numeric:true}));
+}
+function renderProducts(){
+ const q=($("#productSearch")?.value||"").trim().toLowerCase();
+ const rows=getImportedArticles().filter(a=>[a.sku,a.supplier,a.buyer,a.name].join(" ").toLowerCase().includes(q));
+ $("#productRows").innerHTML=rows.length?rows.map(a=>'<tr><td><strong>'+safeText(a.sku)+'</strong></td><td>'+safeText(a.name)+'</td><td><span class="status-chip wms-new">Not assigned</span></td><td class="numeric muted">Not recorded</td><td class="numeric muted">—</td><td class="numeric muted">—</td></tr>').join(""):'<tr><td colspan="6"><div class="table-empty"><strong>No imported articles yet</strong><span>Article records are derived from shipment lines retrieved from Zhipster.</span></div></td></tr>';
+ const count=getImportedArticles().length;
+ const heading=$("#page-products .panel-head h2");if(heading)heading.innerHTML='Article catalogue <span class="count">'+count+'</span>';
+ $("#locSkus").textContent="Not configured";
+ $("#locUnits").textContent="Not recorded";
+ $("#reportStock").textContent="Not recorded";
+ $("#locationProducts").innerHTML='<div class="table-empty"><strong>Location master not configured</strong><span>Physical bin assignments and stock counts have not been entered in WMS.</span></div>';
+}
+function exportProducts(){
+ const rows=getImportedArticles();
+ csv("zhister-wms-articles.csv",[["Article number","Supplier article","Buyer article","Description","Orders referenced","Total ordered","Location","On hand","Allocated","Available"],...rows.map(a=>[a.sku,a.supplier,a.buyer,a.name,a.orders,a.ordered,"Not assigned","Not recorded","Not recorded","Not recorded"])]);
+}
+function renderAll(){
+ renderOverview();renderOrders();renderProducts();renderPicking();renderPacking();renderShipping();
+ $("#reportOrders").textContent=wmsShipments.length;
+}
+loadWmsShipments();
+renderProducts();
