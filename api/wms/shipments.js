@@ -90,6 +90,15 @@ module.exports = async function handler(req, res) {
     if (!user) return;
 
     if (req.method === "GET") {
+      const requestUrl = new URL(req.url, `https://${req.headers.host || "localhost"}`);
+      const historyFor = String(requestUrl.searchParams.get("historyFor") || "").trim();
+      if (historyFor) {
+        if (!/^[0-9a-f-]{36}$/i.test(historyFor)) {
+          return res.status(400).json({ error: "A valid shipment reference is required for activity history." });
+        }
+        const history = await rpc("list_wms_shipment_history", { p_shipment_id: historyFor });
+        return res.status(200).json({ history: Array.isArray(history) ? history : [] });
+      }
       const shipments = await rpc("list_wms_shipments", {});
       return res.status(200).json({ shipments: Array.isArray(shipments) ? shipments : [] });
     }
@@ -121,6 +130,29 @@ module.exports = async function handler(req, res) {
       const result = await rpc("wms_update_pick_line", {
         p_pick_task_id: pickTaskId, p_shipment_line_id: shipmentLineId,
         p_quantity_picked: quantity, p_actor: user.id
+      });
+      return res.status(200).json({ ok: true, result });
+    }
+    if (body.action === "dispatch_prepare") {
+      const workId = String(body.warehouseWorkId || "").trim();
+      const carrier = String(body.carrier || "").trim();
+      const trackingReference = String(body.trackingReference || "").trim();
+      if (!/^[0-9a-f-]{36}$/i.test(workId) || !carrier || carrier.length > 120 || trackingReference.length > 160) {
+        return res.status(400).json({ error: "A valid packed shipment, carrier and optional tracking reference are required." });
+      }
+      const result = await rpc("wms_prepare_dispatch", {
+        p_warehouse_work_id: workId, p_carrier: carrier,
+        p_tracking_reference: trackingReference || null, p_actor: user.id
+      });
+      return res.status(200).json({ ok: true, result });
+    }
+    if (body.action === "dispatch_confirm") {
+      const dispatchId = String(body.dispatchId || "").trim();
+      if (!/^[0-9a-f-]{36}$/i.test(dispatchId)) {
+        return res.status(400).json({ error: "A valid prepared dispatch reference is required." });
+      }
+      const result = await rpc("wms_confirm_dispatch", {
+        p_dispatch_id: dispatchId, p_actor: user.id
       });
       return res.status(200).json({ ok: true, result });
     }
