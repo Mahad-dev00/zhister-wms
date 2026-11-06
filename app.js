@@ -43,13 +43,49 @@ function showWmsShipment(id){
  $("#modalContent").innerHTML=`<div class="eyebrow">ZHIPSTER SHIPMENT / ${safeText(s.external_shipment_id)}</div><h2>${safeText(s.external_shipment_number||s.external_order_number||"Shipment")}</h2><p class="muted">Order reference: ${safeText(s.external_order_number||"Not supplied")}</p><div class="detail-grid"><div class="detail-box"><small>ZHIPSTER STATUS</small><strong>${safeText(s.source_status||"Unknown")}</strong></div><div class="detail-box"><small>DISTRIBUTION MODEL</small><strong>${safeText(s.distribution_model||"Not supplied")}</strong></div><div class="detail-box"><small>WAREHOUSE ELIGIBILITY</small><strong>${safeText(s.eligibility||"needs_review")}</strong></div><div class="detail-box"><small>ARTICLE LINES</small><strong>${lines.length}</strong></div></div><p class="muted">${safeText(work.hold_reason||"Warehouse work remains on hold until fulfilment eligibility is reviewed.")}</p><h3 style="font:700 12px Manrope">Shipment article lines</h3><div class="table-wrap"><table class="modal-lines"><thead><tr><th>SUPPLIER ITEM NO.</th><th>BUYER ARTICLE NO.</th><th>DESCRIPTION</th><th>REQUESTED</th><th>CONFIRMED</th><th>DISPATCHED</th></tr></thead><tbody>${lines.map(l=>`<tr><td>${safeText(l.supplier_article_number||"—")}</td><td>${safeText(l.buyer_article_number||"—")}</td><td>${safeText(l.description||"—")}</td><td>${safeText(l.requested_quantity??"—")}</td><td>${safeText(l.confirmed_quantity??"—")}</td><td>${safeText(l.dispatched_quantity??"—")}</td></tr>`).join("")||'<tr><td colspan="6">No article lines returned.</td></tr>'}</tbody></table></div><div class="modal-actions"><button class="btn" onclick="closeModal()">Close</button></div>`;
  $("#modal").classList.add("show");
 }
+
+function renderOperations(){
+ const host=$("#operationsResults");if(!host)return;
+ const q=($("#operationsSearch")?.value||"").trim().toLowerCase();
+ const rows=wmsShipments.filter(s=>!q||[s.external_order_number,s.external_shipment_number,s.external_shipment_id,s.source_status,s.distribution_model,...(s.shipment_lines||[]).flatMap(l=>[l.supplier_article_number,l.buyer_article_number,l.description])].join(" ").toLowerCase().includes(q));
+ $("#operationsSummary").textContent=rows.length+" matching orders · "+rows.reduce((n,s)=>n+(s.shipment_lines||[]).length,0)+" article lines · "+wmsShipments.length+" imported";
+ if(!rows.length){host.innerHTML='<div class="empty-state"><h3>No matching imported orders</h3><p>Import an order above or change the search.</p></div>';return}
+ host.innerHTML=rows.map(s=>{
+  const lines=s.shipment_lines||[],work=s.warehouse_work||{},task=work.pick_task||{},taskLines=task.lines||[];
+  const eligible=s.eligibility==="eligible"||work.eligibility==="eligible";
+  const state=work.status||"not_started";
+  let html='<article class="ops-order"><div class="ops-order-head"><div><span class="eyebrow">BYGGHEMMA ORDER</span><h3>'+safeText(s.external_order_number||"Order number unavailable")+'</h3><small>Shipment '+safeText(s.external_shipment_number||s.external_shipment_id||"—")+' · '+safeText(s.source_status||"Status unknown")+'</small></div><div><span class="status-chip '+(eligible?"status-ready":"status-open")+'">'+safeText(state.replace(/_/g," "))+'</span><p class="muted">'+safeText(s.distribution_model||"Distribution model not supplied")+'</p></div></div>';
+  if(s.eligibility==="needs_review"||!s.eligibility)html+='<div class="ops-actions"><span class="ops-note">Confirm warehouse fulfilment responsibility before picking.</span><button class="btn primary" data-review="'+s.id+'" data-eligibility="eligible">Approve for warehouse</button><button class="btn" data-review="'+s.id+'" data-eligibility="on_hold">Put on hold</button><button class="btn" data-review="'+s.id+'" data-eligibility="not_eligible">Exclude</button></div>';
+  html+='<div class="table-wrap"><table class="ops-lines"><thead><tr><th>SUPPLIER ITEM NO.</th><th>BUYER ARTICLE NO.</th><th>DESCRIPTION</th><th>ORDERED QTY</th><th>CONFIRMED</th><th>DISPATCHED</th><th>PICKED / ACTION</th></tr></thead><tbody>';
+  lines.forEach(l=>{
+   const pl=taskLines.find(x=>x.shipment_line_id===l.id),toPick=Number(pl?.quantity_to_pick??l.requested_quantity??0),picked=Number(pl?.quantity_picked||0);
+   html+='<tr><td><strong>'+safeText(l.supplier_article_number||"—")+'</strong></td><td>'+safeText(l.buyer_article_number||"—")+'</td><td>'+safeText(l.description||"—")+'</td><td class="ops-qty">'+safeText(l.requested_quantity??"—")+'</td><td>'+safeText(l.confirmed_quantity??"—")+'</td><td>'+safeText(l.dispatched_quantity??"—")+'</td><td>';
+   if(pl&&["open","in_progress"].includes(task.status))html+='<div class="ops-pick-control"><input type="number" min="0" max="'+toPick+'" step="any" value="'+picked+'" id="picked-'+l.id+'"><button class="btn subtle" data-save-pick="'+l.id+'" data-task="'+task.id+'">Save</button><small>of '+toPick+'</small></div>';
+   else if(pl)html+=picked+' / '+toPick;else html+='—';
+   html+='</td></tr>';
+  });
+  if(!lines.length)html+='<tr><td colspan="7">No article lines stored.</td></tr>';
+  html+='</tbody></table></div><div class="ops-footer">'+lines.length+' article lines · Eligibility: '+safeText(s.eligibility||"needs_review")+'</div>';
+  if(eligible&&state==="packing")html+='<div class="ops-pack"><strong>Picking complete — record the actual package dimensions</strong><div class="ops-pack-grid"><label>Package type<input id="pack-type-'+work.id+'" value="parcel"></label><label>Weight kg<input id="pack-weight-'+work.id+'" type="number" min="0.01" step="0.01"></label><label>Length cm<input id="pack-length-'+work.id+'" type="number" min="0.01" step="0.01"></label><label>Width cm<input id="pack-width-'+work.id+'" type="number" min="0.01" step="0.01"></label><label>Height cm<input id="pack-height-'+work.id+'" type="number" min="0.01" step="0.01"></label><button class="btn primary" data-pack-shipment="'+work.id+'">Save package</button></div></div>';
+  return html+'</article>';
+ }).join("");
+ host.querySelectorAll("[data-review]").forEach(b=>b.onclick=()=>runWarehouseAction({action:"review",shipmentId:b.dataset.review,eligibility:b.dataset.eligibility}));
+ host.querySelectorAll("[data-save-pick]").forEach(b=>b.onclick=()=>runWarehouseAction({action:"pick",pickTaskId:b.dataset.task,shipmentLineId:b.dataset.savePick,quantityPicked:Number($("#picked-"+b.dataset.savePick).value)}));
+ host.querySelectorAll("[data-pack-shipment]").forEach(b=>b.onclick=()=>{const id=b.dataset.packShipment;runWarehouseAction({action:"pack",warehouseWorkId:id,packageType:$("#pack-type-"+id).value,weightKg:Number($("#pack-weight-"+id).value),lengthCm:Number($("#pack-length-"+id).value),widthCm:Number($("#pack-width-"+id).value),heightCm:Number($("#pack-height-"+id).value)})});
+}
+async function runWarehouseAction(payload){
+ try{const r=await fetch("/api/wms/shipments",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(payload),cache:"no-store"});const b=await r.json();if(!r.ok)throw new Error(b.error||"Warehouse action failed");await loadWmsShipments();
+renderOperations();toast("Warehouse update saved.");}
+ catch(e){toast(e.message||"Could not save warehouse update.");}
+}
+
 async function loadWmsShipments(){
  try{
   const response=await fetch("/api/wms/shipments",{headers:{Accept:"application/json"},cache:"no-store"});
   if(!response.ok)return;
   const body=await response.json();
   wmsShipments=Array.isArray(body.shipments)?body.shipments:[];
-  renderOverview();renderOrders();$("#reportOrders").textContent=wmsShipments.length;
+  renderOverview();renderOrders();renderOperations();$("#reportOrders").textContent=wmsShipments.length;
  }catch(error){console.warn("Could not load WMS shipments.");}
 }
 function showOrder(num){
@@ -194,6 +230,8 @@ async function lookupZhipster(event){
 }
 $("#zhipsterLookupForm").addEventListener("submit",lookupZhipster);
 $("#liveItemSearch").addEventListener("input",renderLiveShipmentIndex);
+$("#operationsSearch")?.addEventListener("input",renderOperations);
+$("#refreshOperations")?.addEventListener("click",async()=>{await loadWmsShipments();renderOperations()});
 renderLiveShipmentIndex();
 
 $("#orderSearch").oninput=renderOrders;$("#statusFilter").onchange=renderOrders;$("#clearFilters").onclick=()=>{$("#orderSearch").value="";$("#statusFilter").value="";renderOrders()};
