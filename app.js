@@ -264,7 +264,7 @@ const workflowLabel=s=>{
 const workflowClass=s=>({
  "New":"wms-new","On hold":"wms-hold","Partially allocated":"wms-partial",
  "Allocated":"wms-allocated","Picking":"wms-picking","Picked":"wms-picked",
- "Packed":"wms-packed","Shipped":"wms-shipped","Excluded":"wms-cancelled"
+ "Packed":"wms-packed","Shipped":"wms-shipped","Cancelled":"wms-cancelled","Excluded":"wms-cancelled"
 }[workflowLabel(s)]||"wms-new");
 const wmsBadge=s=>'<span class="status-chip wms-status '+workflowClass(s)+'">'+safeText(workflowLabel(s))+'</span>';
 const fmtDate=v=>v?new Intl.DateTimeFormat("en-GB",{dateStyle:"medium",timeStyle:"short"}).format(new Date(v)):"—";
