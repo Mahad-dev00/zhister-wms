@@ -430,9 +430,7 @@ function showWmsShipment(id){
 function bindEnterpriseControls(){
  $("#orderSearch").oninput=()=>{orderPage=1;renderOrders()};
  $("#statusFilter").onchange=()=>{orderPage=1;renderOrders()};
- $("#orderDateFrom").onchange=()=>{orderPage=1;renderOrders()};
- $("#orderDateTo").onchange=()=>{orderPage=1;renderOrders()};
- $("#clearFilters").onclick=()=>{$("#orderSearch").value="";$("#statusFilter").value="";$("#orderDateFrom").value="";$("#orderDateTo").value="";orderPage=1;renderOrders()};
+ $("#clearFilters").onclick=()=>{$("#orderSearch").value="";$("#statusFilter").value="";orderPage=1;renderOrders()};
  $("#orderPageSize").onchange=()=>{orderPage=1;renderOrders()};
  $("#orderPrev").onclick=()=>{orderPage=Math.max(1,orderPage-1);renderOrders()};
  $("#orderNext").onclick=()=>{orderPage++;renderOrders()};
