@@ -55,6 +55,7 @@ begin
     external_order_number=coalesce(excluded.external_order_number,wms.shipments.external_order_number),
     source_status=excluded.source_status,
     distribution_model=excluded.distribution_model,
+    eligibility=case when excluded.eligibility='not_eligible'::wms.eligibility_status then excluded.eligibility else wms.shipments.eligibility end,
     raw_payload=excluded.raw_payload,
     last_synced_at=now(),
     updated_at=now()
