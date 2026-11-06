@@ -306,3 +306,22 @@ body.sidebar-collapsed .sidebar-collapse{position:absolute;right:-18px;top:4px;z
 .stock-in{color:#176b43;font-weight:800}
 .stock-out{color:#b13c2c;font-weight:800}
 @media(max-width:700px){.stock-form{grid-template-columns:1fr}.stock-form .wide{grid-column:auto}.form-actions{grid-column:auto}.form-actions .btn{width:100%}}
+
+/* API-only order presentation: source data is visually separated from WMS execution. */
+#page-orders .order-filter-grid{grid-template-columns:minmax(260px,2fr) minmax(190px,1fr) auto}
+#page-orders .table-panel .panel-head{align-items:center}
+#page-orders .source-status{display:inline-block;padding:3px 7px;border:1px solid #dce4ee;border-radius:3px;background:#f5f7fa;color:#34465e;font-size:10px;font-weight:650}
+#page-orders .api-order-detail{padding:14px 16px 16px;background:#f7f9fc;border-top:1px solid #e1e7ef}
+#page-orders .api-order-top{display:grid;grid-template-columns:1.25fr 1fr .75fr;gap:10px;margin-bottom:14px}
+#page-orders .api-order-top section{min-width:0;padding:12px;background:#fff;border:1px solid #e0e6ee;border-radius:4px}
+#page-orders .api-section-label{display:block;margin-bottom:8px;color:#748398;font-size:9px;font-weight:800;letter-spacing:.75px}
+#page-orders .api-order-top strong{display:block;color:#203650;font-size:13px;overflow-wrap:anywhere}
+#page-orders .api-order-top p{margin:6px 0 0;color:#53647a;font-size:11px;line-height:1.45;overflow-wrap:anywhere}
+#page-orders .api-order-top small{display:block;margin-top:7px;color:#68788c;font-size:10px;overflow-wrap:anywhere}
+#page-orders .api-lines-heading{display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin:10px 0 7px}
+#page-orders .api-lines-heading strong{font-size:12px;color:#263b55}
+#page-orders .api-lines-heading span,#page-orders .api-source-note{font-size:10px;color:#7b899b}
+#page-orders .api-lines-table{background:#fff}
+#page-orders .api-lines-table th{position:static}
+#page-orders .api-source-note{margin:10px 0 0}
+@media(max-width:760px){#page-orders .order-filter-grid{grid-template-columns:1fr}#page-orders .api-order-top{grid-template-columns:1fr}#page-orders .api-lines-heading{display:block}#page-orders .api-lines-heading span{display:block;margin-top:4px}}
