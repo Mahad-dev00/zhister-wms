@@ -107,6 +107,7 @@ body:not(.authenticated) .app, body:not(.authenticated) #modal, body:not(.authen
   <div id="zhipsterLookupResult" class="lookup-result" aria-live="polite"></div>
  </section>
  <div class="notice"><span>ⓘ</span><div><strong>Warehouse eligibility is not automatic</strong><p>Imported shipments are saved with their original Zhipster status. Unknown fulfilment models remain on hold for review; no picking task is created until warehouse eligibility is explicitly approved.</p></div></div>
+<section class="panel operations-panel"><div class="panel-head"><div><h2>Warehouse operations</h2><p class="muted">Search imported orders and article lines, then review, pick and pack here.</p></div><button class="btn subtle" id="refreshOperations">↻ Refresh</button></div><label class="operations-search">Search order number, shipment, supplier item no., buyer article no. or description<input id="operationsSearch" type="search" placeholder="e.g. 301566774, 99566, Ifö Sign…"></label><div class="operations-summary" id="operationsSummary"></div><div id="operationsResults" class="operations-results"></div></section>
 </section>
 <section class="page" id="page-picking">
  <div class="page-head"><div><div class="eyebrow">WORKSPACE / PICKING</div><h1>Picking</h1><p class="muted">Pick by article number while keeping each customer's order separate.</p></div><button class="btn primary" id="printPick">↗ Print pick list</button></div>
