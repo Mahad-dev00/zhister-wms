@@ -49,14 +49,19 @@ body:not(.authenticated) .app, body:not(.authenticated) #modal, body:not(.authen
     <button class="nav-item active" data-page="overview"><span>▦</span>Overview</button>
     <div class="nav-label spaced">ORDERS</div>
     <button class="nav-item" data-page="orders"><span>▤</span>Order list <b class="nav-count" id="orderNavCount">0</b></button>
+    <button class="nav-item" data-page="shipments"><span>＋</span>Import order</button>
     <button class="nav-item" data-page="picking"><span>⌑</span>Picking</button>
     <button class="nav-item" data-page="packing"><span>▣</span>Packing</button>
     <button class="nav-item" data-page="shipping"><span>↗</span>Shipping</button>
     <div class="nav-label spaced">INBOUND</div>
-    <button class="nav-item" data-page="shipments"><span>↓</span>Receive order</button>
+    <button class="nav-item" data-page="receiving"><span>↓</span>Receiving</button>
     <div class="nav-label spaced">INVENTORY</div>
     <button class="nav-item" data-page="products"><span>▧</span>Articles</button>
     <button class="nav-item" data-page="locations"><span>⌖</span>Locations</button>
+    <button class="nav-item" data-page="stock"><span>▦</span>Stock</button>
+    <div class="nav-label spaced">GOODS FLOW</div>
+    <button class="nav-item" data-page="movements"><span>⇄</span>Stock movements</button>
+    <button class="nav-item" data-page="adjustments"><span>±</span>Adjustments</button>
     <div class="nav-label spaced">MANAGEMENT</div>
     <button class="nav-item" data-page="reports"><span>▥</span>Statistics / Reports</button>
     <button class="nav-item" data-page="settings"><span>⚙</span>Settings</button>
@@ -135,6 +140,24 @@ body:not(.authenticated) .app, body:not(.authenticated) #modal, body:not(.authen
  <div class="page-head"><div><div class="eyebrow">INVENTORY / LOCATIONS</div><h1>Locations</h1><p class="muted">Warehouse storage locations and stock distribution.</p></div></div>
  <div class="location-card"><div class="location-visual"><span>⌖</span><small>WAREHOUSE LOCATION</small><strong>A1</strong><p>Prototype location · confirm physical bin setup</p></div><div class="location-info"><div class="location-kpis"><div><strong id="locSkus">Not configured</strong><small>SKUs</small></div><div><strong id="locUnits">Not recorded</strong><small>UNITS ON HAND</small></div><div><strong>Not set</strong><small>PRODUCTS ASSIGNED</small></div></div><h3>Products in A1</h3><div id="locationProducts"></div></div></div>
  <div class="notice"><span>ⓘ</span><div><strong>Location configuration required</strong><p>The current project has no persisted location master or verified stock ledger. A1 is shown as a prototype location only; physical bin assignments must be confirmed before picking locations can be relied on.</p></div></div>
+</section>
+<section class="page" id="page-stock">
+ <div class="page-head"><div><div class="eyebrow">INVENTORY / STOCK</div><h1>Stock</h1><p class="muted">Live balances from the warehouse stock ledger. Picking consumes stock automatically.</p></div><button class="btn" id="exportStock">↓ Export CSV</button></div>
+ <div class="panel filters"><div class="filter-grid"><label>Search article<input id="stockSearch" placeholder="Article number or description…"></label><label>Location<select id="stockLocation"><option value="">All locations</option><option value="A1">A1</option></select></label><button class="btn subtle" id="stockReset">Reset</button></div></div>
+ <div class="panel table-panel"><div class="panel-head"><div><h2>Stock balances <span class="count" id="stockCount">0</span></h2><p class="muted">Available = on hand − allocated. Negative available indicates a stock shortage.</p></div><span class="muted tiny">LEDGER-BASED</span></div><div class="table-wrap"><table><thead><tr><th>ARTICLE</th><th>DESCRIPTION</th><th>LOCATION</th><th>ON HAND</th><th>ALLOCATED</th><th>AVAILABLE</th><th>STATUS</th></tr></thead><tbody id="stockRows"></tbody></table></div></div>
+</section>
+<section class="page" id="page-movements">
+ <div class="page-head"><div><div class="eyebrow">GOODS FLOW / STOCK MOVEMENTS</div><h1>Stock movements</h1><p class="muted">Receipts, adjustments and pick consumption recorded in the stock ledger.</p></div><button class="btn" id="exportMovements">↓ Export CSV</button></div>
+ <div class="panel filters"><div class="filter-grid"><label>Search movements<input id="movementSearch" placeholder="Article, reference or note…"></label><label>Movement type<select id="movementTypeFilter"><option value="">All movements</option><option value="receipt">Receipt</option><option value="adjustment">Adjustment</option><option value="pick">Picking</option><option value="pick_reversal">Pick reversal</option></select></label><button class="btn subtle" id="movementReset">Reset</button></div></div>
+ <div class="panel table-panel"><div class="panel-head"><div><h2>Movement history <span class="count" id="movementCount">0</span></h2><p class="muted">Most recent 500 stock ledger entries.</p></div></div><div class="table-wrap"><table><thead><tr><th>DATE</th><th>ARTICLE</th><th>DESCRIPTION</th><th>LOCATION</th><th>TYPE</th><th>QUANTITY CHANGE</th><th>REFERENCE / NOTE</th></tr></thead><tbody id="movementRows"></tbody></table></div></div>
+</section>
+<section class="page" id="page-receiving">
+ <div class="page-head"><div><div class="eyebrow">INBOUND / RECEIVING</div><h1>Receive stock</h1><p class="muted">Record physical goods received into a warehouse location. This updates the stock ledger.</p></div></div>
+ <div class="panel form-panel"><form id="receiptForm" class="stock-form"><label>Article<select id="receiptArticle" required><option value="">Select an imported article</option></select></label><label>Location<select id="receiptLocation" required><option value="A1">A1 · Main warehouse</option></select></label><label>Quantity received<input id="receiptQuantity" type="number" min="0.001" step="any" required placeholder="Enter received quantity"></label><label>Purchase order / reference<input id="receiptReference" maxlength="120" placeholder="Optional reference"></label><label class="wide">Receiving note<textarea id="receiptNote" rows="3" maxlength="500" placeholder="Condition, supplier or receiving notes…"></textarea></label><div class="form-actions"><button class="btn primary" type="submit">Record receipt</button></div></form><div id="receiptMessage" class="form-message" role="status"></div></div>
+</section>
+<section class="page" id="page-adjustments">
+ <div class="page-head"><div><div class="eyebrow">GOODS FLOW / ADJUSTMENTS</div><h1>Stock adjustments</h1><p class="muted">Correct a verified physical count. Negative adjustments cannot reduce stock below zero.</p></div></div>
+ <div class="panel form-panel"><form id="adjustmentForm" class="stock-form"><label>Article<select id="adjustArticle" required><option value="">Select an imported article</option></select></label><label>Location<select id="adjustLocation" required><option value="A1">A1 · Main warehouse</option></select></label><label>Quantity change<input id="adjustQuantity" type="number" step="any" required placeholder="Positive or negative, e.g. -2"></label><label>Reason<input id="adjustReason" maxlength="120" required placeholder="Cycle count correction"></label><label class="wide">Notes<textarea id="adjustNote" rows="3" maxlength="500" placeholder="Explain the verified stock difference…"></textarea></label><div class="form-actions"><button class="btn primary" type="submit">Save adjustment</button></div></form><div id="adjustmentMessage" class="form-message" role="status"></div></div>
 </section>
 <section class="page" id="page-reports">
  <div class="page-head"><div><div class="eyebrow">MANAGE / REPORTS</div><h1>Reports</h1><p class="muted">A snapshot of imported Zhipster shipments and warehouse review status.</p></div></div>
