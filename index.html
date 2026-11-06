@@ -94,17 +94,15 @@ body:not(.authenticated) .app, body:not(.authenticated) #modal, body:not(.authen
  <div class="panel table-panel"><div class="panel-head"><div><h2>All orders <span class="count" id="orderCount">0</span></h2><p class="muted">Select a shipment to inspect its Zhipster status, article lines and warehouse eligibility.</p></div><span class="muted tiny">LIVE DATA ONLY</span></div><div class="table-wrap"><table><thead><tr><th>ORDER REFERENCE</th><th>ZHIPSTER STATUS</th><th>DISTRIBUTION MODEL</th><th>LINES</th><th>ELIGIBILITY</th><th></th></tr></thead><tbody id="orderRows"></tbody></table></div></div>
 </section>
 <section class="page" id="page-shipments">
- <div class="page-head"><div><div class="eyebrow">WORKSPACE / ZHIPSTER SHIPMENTS</div><h1>Live Zhipster orders</h1><p class="muted">Retrieve registered shipments by Order Number, import them into WMS and search their article lines.</p></div></div>
+ <div class="page-head"><div><div class="eyebrow">WORKSPACE / BYGGHEMMA ORDERS</div><h1>Receive an order</h1><p class="muted">Use the order number from the Bygghemma order email to retrieve the existing shipment from Zhipster.</p></div></div>
  <section class="panel integration-lookup">
-  <div class="panel-head"><div><h2>Find a live Zhipster shipment</h2><p class="muted">Enter an Order Number to retrieve and save its existing shipment records in the WMS. Zhipster shipments are never created or modified.</p></div><span class="status-chip status-packing">LIVE API LOOKUP</span></div>
+  <div class="panel-head"><div><h2>Search Bygghemma order</h2><p class="muted">Copy the Order Number from the Bygghemma email. WMS retrieves the existing Zhipster shipment and saves its full order data. It does not create a new shipment.</p></div><span class="status-chip status-packing">ZHIPSTER LOOKUP</span></div>
   <div class="filter-grid">
    <form id="zhipsterLookupForm" class="filter-grid" style="display:contents">
-    <label class="lookup-value">Order Number<input id="zhipsterLookupValue" name="orderNumber" placeholder="Enter Order Number, e.g. 22144165" autocomplete="off" required></label>
-    <button class="btn" id="zhipsterLookupButton" type="submit">Search one order</button>
+    <label class="lookup-value">Bygghemma Order Number<input id="zhipsterLookupValue" name="orderNumber" placeholder="Paste order number from email" autocomplete="off" required></label>
+    <button class="btn primary" id="zhipsterLookupButton" type="submit">Find order and import</button>
    </form>
-   <button class="btn primary" id="bulkSyncButton" type="button">↓ Import new orders</button>
   </div>
-  <p id="bulkSyncResult" class="lookup-result" aria-live="polite"></p>
   <div class="live-index-tools"><label>Search retrieved orders and lines<input id="liveItemSearch" placeholder="Supplier Item No., buyer article no., description, order or shipment…"></label><span id="liveShipmentCount" class="muted">0 matching / 0 retrieved</span></div>
   <div id="zhipsterLookupResult" class="lookup-result" aria-live="polite"></div>
  </section>
