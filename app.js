@@ -711,5 +711,3 @@ async function submitStockMovement({articleCode,locationCode,quantityDelta,movem
 function exportProducts(){
  csv("zhister-wms-articles-and-stock.csv",[["Article","Supplier article","Buyer article","Description","Location","On hand","Allocated","Available"],...wmsInventory.map(a=>[a.article_code,a.supplier_article_number,a.buyer_article_number,a.description,a.location_code,a.on_hand,a.allocated,a.available])]);
 }
-$("#exportProducts")?.addEventListener("click",exportProducts);
-$("#reportProductsExport")?.addEventListener("click",exportProducts);
