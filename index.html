@@ -42,7 +42,7 @@ body:not(.authenticated) .app, body:not(.authenticated) #modal, body:not(.authen
 </section>
 <div class="app">
 <aside class="sidebar" id="sidebar">
-  <div class="brand"><div class="brand-mark">Z</div><div><strong>zhister</strong><small>WAREHOUSE OS</small></div></div>
+  <div class="brand"><div class="brand-mark">Z</div><div><strong>zhister</strong><small>WAREHOUSE OS</small></div><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Collapse sidebar">‹</button></div>
   <div class="workspace"><span class="dot"></span><span>Main warehouse</span><span class="chevron">⌄</span></div>
   <div class="nav-label">WORKSPACE</div>
   <nav id="nav">
@@ -65,7 +65,7 @@ body:not(.authenticated) .app, body:not(.authenticated) #modal, body:not(.authen
 </aside>
 <main class="main">
 <header class="topbar"><button class="mobile-menu" id="mobileMenu">☰</button><div class="breadcrumbs">Main warehouse <span>/</span> <strong id="crumb">Overview</strong></div><div class="global-search"><span>⌕</span><input id="globalSearch" type="search" placeholder="Search order no. or article no."><kbd>Enter</kbd></div><div class="top-actions"><div class="sync-pill"><i></i> Zhipster connected</div><div class="user-role"><strong>WMS administrator</strong><small>Warehouse operations</small></div><div class="avatar small">MW</div></div></header>
-<div class="content">
+<div class="content"><div id="appAlert" class="inline-alert error" role="alert" hidden></div>
 <section class="page active" id="page-overview">
   <div class="page-head"><div><div class="eyebrow">MONDAY, 3 NOVEMBER 2026</div><h1>Warehouse overview</h1><p class="muted">Here's what's happening in your warehouse today.</p></div><button class="btn primary" data-goto="orders">＋ View orders</button></div>
   <div class="stats-grid">
@@ -114,7 +114,7 @@ body:not(.authenticated) .app, body:not(.authenticated) #modal, body:not(.authen
 <section class="page" id="page-picking">
  <div class="page-head"><div><div class="eyebrow">WORKSPACE / PICKING</div><h1>Picking</h1><p class="muted">Pick by article number while keeping each customer's order separate.</p></div><button class="btn primary" id="printPick">↗ Print pick list</button></div>
  <div class="notice"><span>ⓘ</span><div><strong>Batch picking</strong><p>Quantities are grouped by SKU for efficient warehouse travel. Each row still shows the individual order allocation, so orders cannot be mixed.</p></div></div>
- <div class="panel filters"><div class="filter-grid"><label>Find article<input id="pickSearch" placeholder="Search article number or product name…"></label><label>Location<select id="locationFilter"><option value="">All locations</option><option>A1</option></select></label><label>Work status<select id="pickStatus"><option value="">All</option><option value="todo">To pick</option><option value="done">Completed</option></select></label></div></div>
+ <div class="panel filters"><div class="filter-grid"><label>Find article<input id="pickSearch" placeholder="Search article number or product name…"></label><label>Location<select id="locationFilter"><option value="">All locations</option><option value="unassigned">Unassigned</option></select></label><label>Work status<select id="pickStatus"><option value="">All</option><option value="todo">To pick</option><option value="done">Completed</option></select></label></div></div>
  <div id="pickGroups" class="pick-groups"></div>
 </section>
 <section class="page" id="page-packing">
