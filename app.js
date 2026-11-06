@@ -73,7 +73,7 @@ function renderOperations(){
   if(eligible&&state==="packing")html+='<div class="ops-pack"><strong>Picking complete — record the actual package dimensions</strong><div class="ops-pack-grid"><label>Package type<input id="pack-type-'+work.id+'" value="parcel"></label><label>Weight kg<input id="pack-weight-'+work.id+'" type="number" min="0.01" step="0.01"></label><label>Length cm<input id="pack-length-'+work.id+'" type="number" min="0.01" step="0.01"></label><label>Width cm<input id="pack-width-'+work.id+'" type="number" min="0.01" step="0.01"></label><label>Height cm<input id="pack-height-'+work.id+'" type="number" min="0.01" step="0.01"></label><button class="btn primary" data-pack-shipment="'+work.id+'">Save package</button></div></div>';
   return html+'</article>';
  }).join("");
- host.querySelectorAll("[data-review]").forEach(b=>b.onclick=()=>runWarehouseAction({action:"review",shipmentId:b.dataset.review,eligibility:b.dataset.eligibility}));
+ host.querySelectorAll("[data-review]").forEach(b=>b.onclick=()=>{if(b.dataset.eligibility==="not_eligible"&&!window.confirm("Exclude this shipment from warehouse fulfilment? It will remain in Zhipster."))return;runWarehouseAction({action:"review",shipmentId:b.dataset.review,eligibility:b.dataset.eligibility})});
  host.querySelectorAll("[data-save-pick]").forEach(b=>b.onclick=()=>runWarehouseAction({action:"pick",pickTaskId:b.dataset.task,shipmentLineId:b.dataset.savePick,quantityPicked:Number($("#picked-"+b.dataset.savePick).value)}));
  host.querySelectorAll("[data-pack-shipment]").forEach(b=>b.onclick=()=>{const id=b.dataset.packShipment;runWarehouseAction({action:"pack",warehouseWorkId:id,packageType:$("#pack-type-"+id).value,weightKg:Number($("#pack-weight-"+id).value),lengthCm:Number($("#pack-length-"+id).value),widthCm:Number($("#pack-width-"+id).value),heightCm:Number($("#pack-height-"+id).value)})});
 }
@@ -255,11 +255,12 @@ let ordersLoading=true;
 let ordersLoadError="";
 const workflowLabel=s=>{
  const w=s.warehouse_work||{},e=s.eligibility||w.eligibility||"needs_review",state=w.status||"not_started";
+ if(/cancel/i.test(String(s.source_status||"")))return "Cancelled";
  if(e==="not_eligible")return "Excluded";
  if(e==="on_hold"||state==="on_hold")return "On hold";
  if(state==="dispatched")return "Shipped";
- if(state==="ready_to_dispatch")return "Packed";
- if(state==="packing")return "Picked";
+ if(state==="ready_to_dispatch"||state==="packed")return "Packed";
+ if(state==="packing"||state==="picked")return "Picked";
  if(state==="picking")return "Picking";
  if(state==="ready_to_pick")return "Allocated";
  return "New";
@@ -294,7 +295,8 @@ function filteredShipments(){
    (status==="picking"&&label==="Picking")||
    (status==="packing"&&label==="Picked")||
    (status==="ready_to_dispatch"&&label==="Packed")||
-   (status==="dispatched"&&label==="Shipped");
+   (status==="dispatched"&&label==="Shipped")||
+   (status==="cancelled"&&label==="Cancelled");
   return statusMatch&&(!q||shipmentSearch(s).includes(q))&&(!from||(dateKey&&dateKey>=from))&&(!to||(dateKey&&dateKey<=to));
  });
 }
@@ -670,6 +672,7 @@ $("#adjustmentForm")?.addEventListener("submit",e=>{
  e.preventDefault();
  const quantity=Number($("#adjustQuantity").value),reason=$("#adjustReason").value.trim();
  if(!Number.isFinite(quantity)||quantity===0||!reason){stockMessage("#adjustmentMessage","Enter a non-zero quantity change and a reason.",true);return}
+ if(quantity<0&&!window.confirm("Confirm that this negative adjustment matches a verified physical stock count?"))return;
  submitStockMovement({articleCode:$("#adjustArticle").value,locationCode:$("#adjustLocation").value,quantityDelta:quantity,movementType:"adjustment",reference:reason,note:$("#adjustNote").value,messageId:"#adjustmentMessage",form:$("#adjustmentForm")});
 });
 $("#stockSearch")?.addEventListener("input",renderStock);
