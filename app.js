@@ -23,6 +23,8 @@ $$("[data-page]").forEach(b=>b.addEventListener("click",()=>go(b.dataset.page)))
 $$("[data-goto]").forEach(b=>b.addEventListener("click",()=>go(b.dataset.goto)));
 $("#mobileMenu").onclick=()=>$("#sidebar").classList.toggle("open");
 function renderOverview(){
+ const dateNode=$("#page-overview .page-head .eyebrow");if(dateNode)dateNode.textContent=new Intl.DateTimeFormat("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(new Date()).toUpperCase();
+ const emptyNotice=$("#overviewEmptyNotice");if(emptyNotice)emptyNotice.hidden=wmsShipments.length>0;
  const total=wmsShipments.length,review=wmsShipments.filter(s=>s.eligibility==="needs_review").length,eligible=wmsShipments.filter(s=>s.eligibility==="eligible").length,excluded=wmsShipments.filter(s=>s.eligibility==="not_eligible").length;
  $("#statOpen").textContent=total;$("#statPick").textContent=review;$("#statShip").textContent=eligible;$("#statPicked").textContent=wmsShipments.reduce((n,s)=>n+(s.shipment_lines||[]).length,0);
  $("#flowOpen").textContent=total;$("#flowPicking").textContent=review;$("#flowPacking").textContent=eligible;$("#flowShip").textContent=excluded;
@@ -390,6 +392,7 @@ function renderPicking(){
  const host=$("#pickGroups");if(!host)return;
  const q=($("#pickSearch")?.value||"").trim().toLowerCase();
  const filter=$("#pickStatus")?.value||"";
+ const locationFilter=$("#locationFilter")?.value||"";
  const groups=new Map();
  const pickable=wmsShipments.filter(s=>{
   const w=s.warehouse_work||{},t=w.pick_task||{};
@@ -399,6 +402,7 @@ function renderPicking(){
   const w=s.warehouse_work||{},task=w.pick_task||{},c=s.customer||{};
   (s.shipment_lines||[]).forEach(l=>{
    const pl=(task.lines||[]).find(x=>x.shipment_line_id===l.id);if(!pl)return;
+   if(locationFilter==="A1")return;
    const sku=l.supplier_article_number||l.buyer_article_number||"Uncoded";
    const text=[sku,l.buyer_article_number,l.description].join(" ").toLowerCase();
    const done=Number(pl.quantity_picked)>=Number(pl.quantity_to_pick);
@@ -492,7 +496,7 @@ function bindEnterpriseControls(){
   const q=e.currentTarget.value.trim();if(!q)return;
   const match=wmsShipments.find(s=>shipmentSearch(s).includes(q.toLowerCase()));
   if(match){go("orders");$("#orderSearch").value=q;orderPage=1;renderOrders();expandedOrders.add(match.id);renderOrders();return}
-  const productMatch=PRODUCTS.some(p=>(p.sku+" "+p.name).toLowerCase().includes(q.toLowerCase()));
+  const productMatch=getImportedArticles().some(p=>(p.sku+" "+p.name).toLowerCase().includes(q.toLowerCase()));
   if(productMatch){go("products");$("#productSearch").value=q;renderProducts();return}
   go("orders");$("#orderSearch").value=q;orderPage=1;renderOrders();
  });
@@ -531,6 +535,7 @@ function renderProducts(){
  const rows=getImportedArticles().filter(a=>[a.sku,a.supplier,a.buyer,a.name].join(" ").toLowerCase().includes(q));
  $("#productRows").innerHTML=rows.length?rows.map(a=>'<tr><td><strong>'+safeText(a.sku)+'</strong></td><td>'+safeText(a.name)+'</td><td><span class="status-chip wms-new">Not assigned</span></td><td class="numeric muted">Not recorded</td><td class="numeric muted">—</td><td class="numeric muted">—</td></tr>').join(""):'<tr><td colspan="6"><div class="table-empty"><strong>No imported articles yet</strong><span>Article records are derived from shipment lines retrieved from Zhipster.</span></div></td></tr>';
  const count=getImportedArticles().length;
+ if($("#reportSkus"))$("#reportSkus").textContent=count;
  const heading=$("#page-products .panel-head h2");if(heading)heading.innerHTML='Article catalogue <span class="count">'+count+'</span>';
  $("#locSkus").textContent="Not configured";
  $("#locUnits").textContent="Not recorded";
