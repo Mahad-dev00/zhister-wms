@@ -69,10 +69,10 @@ body:not(.authenticated) .app, body:not(.authenticated) #modal, body:not(.authen
 <section class="page active" id="page-overview">
   <div class="page-head"><div><div class="eyebrow">MONDAY, 3 NOVEMBER 2026</div><h1>Warehouse overview</h1><p class="muted">Here's what's happening in your warehouse today.</p></div><button class="btn primary" data-goto="orders">＋ View orders</button></div>
   <div class="stats-grid">
-    <article class="stat-card"><div class="stat-top"><span>Imported shipments</span><span class="stat-icon blue">▤</span></div><div class="stat-value" id="statOpen">0</div><div class="stat-foot"><span class="trend">↑ 8.2%</span> vs. yesterday</div></article>
+    <article class="stat-card"><div class="stat-top"><span>Imported shipments</span><span class="stat-icon blue">▤</span></div><div class="stat-value" id="statOpen">0</div><div class="stat-foot">Live database count</div></article>
     <article class="stat-card"><div class="stat-top"><span>Needs review</span><span class="stat-icon violet">⌑</span></div><div class="stat-value" id="statPick">0</div><div class="stat-foot">Awaiting fulfilment review</div></article>
     <article class="stat-card"><div class="stat-top"><span>Eligible for picking</span><span class="stat-icon green">↗</span></div><div class="stat-value" id="statShip">0</div><div class="stat-foot">Only after eligibility approval</div></article>
-    <article class="stat-card"><div class="stat-top"><span>Article lines</span><span class="stat-icon amber">✓</span></div><div class="stat-value" id="statPicked">0</div><div class="stat-foot"><span class="trend">↑ 12%</span> vs. yesterday</div></article>
+    <article class="stat-card"><div class="stat-top"><span>Article lines</span><span class="stat-icon amber">✓</span></div><div class="stat-value" id="statPicked">0</div><div class="stat-foot">From imported shipments</div></article>
   </div>
   <div class="dashboard-grid">
     <section class="panel"><div class="panel-head"><div><h2>Order flow</h2><p class="muted">Current warehouse workload</p></div><button class="text-btn" data-goto="orders">All orders ↗</button></div><div class="flow-list">
@@ -88,7 +88,7 @@ body:not(.authenticated) .app, body:not(.authenticated) #modal, body:not(.authen
     </div></section>
   </div>
   <section class="panel recent-panel"><div class="panel-head"><div><h2>Recent orders</h2><p class="muted">Orders retrieved from the WMS database</p></div><button class="text-btn" data-goto="orders">View all orders ↗</button></div><div class="table-wrap"><table><thead><tr><th>ORDER REFERENCE</th><th>ZHIPSTER STATUS</th><th>DISTRIBUTION MODEL</th><th>LINES</th><th>ELIGIBILITY</th><th></th></tr></thead><tbody id="recentRows"></tbody></table></div></section>
-  <div class="notice"><span>ⓘ</span><div><strong>No WMS shipments imported yet</strong><p>Search an existing Zhipster Order Number under Live orders. Retrieved shipments will be saved here for warehouse review.</p></div></div>
+  <div class="notice" id="overviewEmptyNotice"><span>ⓘ</span><div><strong>No WMS shipments imported yet</strong><p>Search an existing Zhipster Order Number under Live orders. Retrieved shipments will be saved here for warehouse review.</p></div></div>
 </section>
 <section class="page" id="page-orders">
  <div class="page-head"><div><div class="eyebrow">WORKSPACE / ORDERS</div><h1>Orders</h1><p class="muted">Imported Zhipster shipments saved in WMS for warehouse review.</p></div><button class="btn" id="exportOrders">↓ Export CSV</button></div>
