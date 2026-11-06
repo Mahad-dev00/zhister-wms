@@ -243,10 +243,6 @@ $("#pickSearch").oninput=renderPicking;$("#locationFilter").onchange=renderPicki
 $("#exportOrders").onclick=exportOrders;$("#reportOrdersExport").onclick=exportOrders;$("#exportProducts").onclick=exportProducts;$("#reportProductsExport").onclick=exportProducts;
 $("#printPick").onclick=()=>window.print();$("#printReport").onclick=()=>window.print();
 function renderAll(){renderOverview();renderOrders();renderProducts();renderPicking();renderPacking();renderShipping();$("#reportOrders").textContent=orders.length}
-renderAll();
-loadWmsShipments();
-
-
 /* Enterprise WMS interactions: client-side views over the existing WMS API. */
 let orderSort={key:"created_at",direction:"desc"};
 let orderPage=1;
@@ -553,10 +549,6 @@ function renderAll(){
  renderOverview();renderOrders();renderProducts();renderPicking();renderPacking();renderShipping();
  $("#reportOrders").textContent=wmsShipments.length;
 }
-loadWmsShipments();
-renderProducts();
-
-
 let wmsInventory=[];
 let wmsMovements=[];
 async function loadWmsInventory(){
