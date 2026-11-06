@@ -118,13 +118,13 @@ body:not(.authenticated) .app, body:not(.authenticated) #modal, body:not(.authen
 </section>
 <section class="page" id="page-shipping">
  <div class="page-head"><div><div class="eyebrow">WORKSPACE / SHIPPING</div><h1>Shipping</h1><p class="muted">Review packed orders before dispatch.</p></div></div>
- <div class="notice warning"><span>!</span><div><strong>Warehouse dispatch integration pending</strong><p>No demo shipments are shown. Carrier booking, tracking and label retrieval remain managed by the existing Zhipster shipment.</p></div></div>
+ <div class="notice warning"><span>!</span><div><strong>Dispatch handover recording available</strong><p>No demo shipments are shown. Carrier booking, tracking and label retrieval remain managed by Zhipster until the relevant write-back API is verified.</p></div></div>
  <div class="panel table-panel"><div class="panel-head"><div><h2>Shipment queue</h2><p class="muted">Packed orders ready for carrier handover</p></div></div><div class="table-wrap"><table><thead><tr><th>ORDER</th><th>CUSTOMER</th><th>CARRIER</th><th>WEIGHT</th><th>PACKAGE</th><th>STATUS</th></tr></thead><tbody id="shippingRows"></tbody></table></div></div>
 </section>
 <section class="page" id="page-products">
- <div class="page-head"><div><div class="eyebrow">INVENTORY / PRODUCTS</div><h1>Products</h1><p class="muted">Product catalogue, stock overview and default pick locations.</p></div><button class="btn" id="exportProducts">↓ Export CSV</button></div>
+ <div class="page-head"><div><div class="eyebrow">INVENTORY / PRODUCTS</div><h1>Products</h1><p class="muted">Product catalogue and pick-location reference. Live stock is not yet configured.</p></div><button class="btn" id="exportProducts">↓ Export CSV</button></div>
  <div class="panel filters"><div class="filter-grid"><label>Search products<input id="productSearch" placeholder="Article number or product name…"></label><label>Location<select id="productLocation"><option value="">All locations</option><option>A1</option></select></label></div></div>
- <div class="panel table-panel"><div class="panel-head"><div><h2>Product catalogue <span class="count">5</span></h2><p class="muted">Initial product master supplied for the warehouse prototype.</p></div></div><div class="table-wrap"><table><thead><tr><th>ARTICLE NUMBER</th><th>PRODUCT</th><th>LOCATION</th><th>ON HAND</th><th>ALLOCATED</th><th>AVAILABLE</th></tr></thead><tbody id="productRows"></tbody></table></div></div>
+ <div class="panel table-panel"><div class="panel-head"><div><h2>Product catalogue <span class="count">5</span></h2><p class="muted">Reference product master. Displayed stock values are demo data, not live inventory.</p></div></div><div class="table-wrap"><table><thead><tr><th>ARTICLE NUMBER</th><th>PRODUCT</th><th>LOCATION</th><th>ON HAND</th><th>ALLOCATED</th><th>AVAILABLE</th></tr></thead><tbody id="productRows"></tbody></table></div></div>
 </section>
 <section class="page" id="page-locations">
  <div class="page-head"><div><div class="eyebrow">INVENTORY / LOCATIONS</div><h1>Locations</h1><p class="muted">Warehouse storage locations and stock distribution.</p></div></div>
@@ -147,4 +147,5 @@ body:not(.authenticated) .app, body:not(.authenticated) #modal, body:not(.authen
 <div class="modal-backdrop" id="modal"><div class="modal" role="dialog" aria-modal="true"><button class="modal-close" id="modalClose">×</button><div id="modalContent"></div></div></div>
 <div class="toast" id="toast"></div>
 <script src="auth.js"></script>\n<script src="app.js"></script>
+<script src="warehouse-operations.js"></script>
 </body></html>
