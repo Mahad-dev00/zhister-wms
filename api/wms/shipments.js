@@ -109,6 +109,13 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: "The supplied identifier has an invalid format." });
     }
 
+    if (orderNumber) {
+      await rpc("record_wms_order_index", {
+        p_order_number: orderNumber,
+        p_source: "manual_order_lookup"
+      });
+    }
+
     const data = await fetchZhipster(shipmentId ? "shipmentId" : "orderNumber", identifier);
     if (!data) return res.status(200).json({ found: false, imported: 0, message: "Zhipster returned no shipment." });
 

@@ -249,5 +249,18 @@
   const syncPill = document.querySelector(".sync-pill");
   if (syncPill) syncPill.innerHTML = '<i></i> Warehouse live · auto-discovery pending';
 
-  loadWmsShipments();
+  async function initialWarehouseLoad() {
+    // Refresh known order-index entries from Zhipster before rendering the queue.
+    // A failed source sync must not prevent the warehouse from opening.
+    try {
+      await fetch("/api/wms/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: "{}",
+        cache: "no-store"
+      });
+    } catch (_) {}
+    await loadWmsShipments();
+  }
+  initialWarehouseLoad();
 })();
