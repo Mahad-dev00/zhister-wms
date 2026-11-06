@@ -41,8 +41,8 @@ function renderOrders(){
 }
 function showWmsShipment(id){
  const s=wmsShipments.find(x=>x.id===id);if(!s)return;
- const lines=s.shipment_lines||[],work=s.warehouse_work||{},customer=s.customer||{};
- $("#modalContent").innerHTML=`<div class="eyebrow">ZHIPSTER SHIPMENT / ${safeText(s.external_shipment_id)}</div><h2>${safeText(s.external_shipment_number||s.external_order_number||"Shipment")}</h2><p class="muted">Order reference: ${safeText(s.external_order_number||"Not supplied")}</p><div class="detail-grid"><div class="detail-box"><small>ZHIPSTER STATUS</small><strong>${safeText(s.source_status||"Unknown")}</strong></div><div class="detail-box"><small>DISTRIBUTION MODEL</small><strong>${safeText(s.distribution_model||"Not supplied")}</strong></div><div class="detail-box"><small>WAREHOUSE ELIGIBILITY</small><strong>${safeText(s.eligibility||"needs_review")}</strong></div><div class="detail-box"><small>ARTICLE LINES</small><strong>${lines.length}</strong></div></div><p class="muted">${safeText(work.hold_reason||"Warehouse work remains on hold until fulfilment eligibility is reviewed.")}</p><h3 style="font:700 12px Manrope">Shipment article lines</h3><div class="table-wrap"><table class="modal-lines"><thead><tr><th>SUPPLIER ITEM NO.</th><th>BUYER ARTICLE NO.</th><th>DESCRIPTION</th><th>REQUESTED</th><th>CONFIRMED</th><th>DISPATCHED</th></tr></thead><tbody>${lines.map(l=>`<tr><td>${safeText(l.supplier_article_number||"—")}</td><td>${safeText(l.buyer_article_number||"—")}</td><td>${safeText(l.description||"—")}</td><td>${safeText(l.requested_quantity??"—")}</td><td>${safeText(l.confirmed_quantity??"—")}</td><td>${safeText(l.dispatched_quantity??"—")}</td></tr>`).join("")||'<tr><td colspan="6">No article lines returned.</td></tr>'}</tbody></table></div><div class="modal-actions"><button class="btn" onclick="closeModal()">Close</button></div>`;
+ const c=s.customer||{},lines=s.shipment_lines||[];
+ $("#modalContent").innerHTML='<div class="eyebrow">ZHIPSTER API ORDER</div><h2>'+safeText(s.external_order_number||s.external_shipment_number||"Order")+'</h2><p class="muted">Shipment '+safeText(s.external_shipment_number||s.external_shipment_id||"—")+' · '+safeText(s.source_status||"Status not supplied")+'</p>'+orderDetailMarkup(s)+'<div class="modal-actions"><button class="btn" onclick="closeModal()">Close</button></div>';
  $("#modal").classList.add("show");
 }
 
@@ -244,7 +244,7 @@ $("#exportOrders").onclick=exportOrders;$("#reportOrdersExport").onclick=exportO
 $("#printPick").onclick=()=>window.print();$("#printReport").onclick=()=>window.print();
 function renderAll(){renderOverview();renderOrders();renderProducts();renderPicking();renderPacking();renderShipping();$("#reportOrders").textContent=orders.length}
 /* Enterprise WMS interactions: client-side views over the existing WMS API. */
-let orderSort={key:"created_at",direction:"desc"};
+let orderSort={key:"external_order_number",direction:"desc"};
 let orderPage=1;
 let expandedOrders=new Set();
 let ordersLoading=true;
@@ -305,7 +305,7 @@ function renderOrders(){
   (expanded?'<tr class="order-detail-row"><td colspan="7">'+orderDetailMarkup(s)+'</td></tr>':"");
  }).join("");
  body.querySelectorAll("[data-expand]").forEach(b=>b.onclick=()=>{const id=b.dataset.expand;expandedOrders.has(id)?expandedOrders.delete(id):expandedOrders.add(id);renderOrders();});
- body.querySelectorAll("[data-open-order]").forEach(b=>b.onclick=()=>showWmsShipment(b.dataset.openOrder));
+ body.querySelectorAll("[data-open-order]").forEach(b=>b.onclick=()=>{const id=b.dataset.openOrder;expandedOrders.has(id)?expandedOrders.delete(id):expandedOrders.add(id);renderOrders()});
 }
 function orderDetailMarkup(s){
  const lines=s.shipment_lines||[],c=s.customer||{};
