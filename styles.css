@@ -17,3 +17,28 @@
 .ops-customer{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;padding:14px 16px;margin:0 0 14px;background:#f7f9fc;border:1px solid #e5eaf1;border-radius:10px}.ops-customer>div:first-child{min-width:220px}.ops-customer strong{display:block;margin-top:5px;font-size:14px;color:#172033}.ops-customer p{margin:5px 0 0;color:#536174;font-size:12px;line-height:1.5}.ops-customer-contact{display:flex;flex-direction:column;gap:6px;text-align:right;color:#536174;font-size:12px;overflow-wrap:anywhere}@media(max-width:700px){.ops-customer{flex-direction:column}.ops-customer-contact{text-align:left}}
 
 .ops-order-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:14px 16px;margin:12px 0 16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px}.ops-order-summary>div{display:flex;flex-direction:column;gap:5px;min-width:0}.ops-order-summary small{font-size:9px;font-weight:800;letter-spacing:1px;color:#64748b}.ops-order-summary strong{font-size:14px;color:#172033;overflow-wrap:anywhere}@media(max-width:720px){.ops-order-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* Live order customer profile: recipient, address and carrier collection point. */
+.live-order-reference{margin:5px 0 0;color:#718096;font-size:11px}
+.live-customer-profile{display:flex;justify-content:space-between;gap:22px;align-items:center;padding:19px 20px;margin:0 0 12px;border:1px solid #dfe7f1;border-radius:12px;background:linear-gradient(135deg,#f8fbff 0%,#f3f7fc 100%)}
+.live-customer-main{display:flex;align-items:center;gap:14px;min-width:0}
+.live-customer-avatar{width:48px;height:48px;flex:0 0 48px;border-radius:14px;display:grid;place-items:center;background:#e4edff;color:#315fc4;font-size:23px}
+.live-customer-identity h4{font:800 18px Manrope;margin:4px 0 5px;color:#17243a}
+.live-customer-identity p{font-size:12px;line-height:1.55;color:#53647a;margin:0;overflow-wrap:anywhere}
+.live-customer-contact{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.live-customer-contact a{display:grid;gap:5px;padding:9px 12px;border:1px solid #e1e8f1;border-radius:8px;background:#fff;text-decoration:none;min-width:130px;max-width:220px}
+.live-customer-contact a span,.live-parties span{font-size:8px;font-weight:800;letter-spacing:1px;color:#8794a7}
+.live-customer-contact a strong{font-size:11px;color:#315fc4;overflow-wrap:anywhere}
+.live-contact-missing{font-size:10px;color:#8995a5}
+.live-drop-point{display:flex;gap:12px;align-items:center;padding:13px 16px;margin:0 0 13px;border:1px solid #dceee7;border-radius:10px;background:#f4fbf7}
+.live-drop-icon{width:34px;height:34px;flex:0 0 34px;border-radius:9px;display:grid;place-items:center;background:#e0f3e9;color:#19845d;font-size:18px}
+.live-drop-point strong{display:block;font-size:12px;color:#176b4d;margin:4px 0}
+.live-drop-point p{font-size:11px;color:#536b60;margin:0 0 3px}
+.live-drop-point small{font-size:9px;color:#7d9589}
+.live-parties{display:flex;gap:7px 10px;align-items:center;flex-wrap:wrap;padding:10px 2px 13px;border-bottom:1px solid #edf0f4;margin-bottom:13px}
+.live-parties strong{font-size:10px;color:#45546a;margin-right:18px}
+.live-lines-heading{display:flex;align-items:center;justify-content:space-between;margin:2px 0 8px}
+.live-lines-heading h4{font:750 13px Manrope;color:#26364d;margin:0 0 3px}
+.live-lines-heading p{font-size:10px;color:#8a96a7;margin:0}
+@media(max-width:700px){.live-customer-profile{align-items:flex-start;flex-direction:column;padding:15px}.live-customer-contact{justify-content:flex-start;width:100%}.live-customer-contact a{flex:1;min-width:0}.live-customer-identity h4{font-size:16px}.live-drop-point{align-items:flex-start}.live-parties{align-items:flex-start;flex-direction:column;gap:5px}.live-parties strong{margin:0 0 5px}}
