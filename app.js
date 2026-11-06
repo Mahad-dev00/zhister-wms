@@ -176,7 +176,7 @@ function classifyShipment(shipment,dispatch,lines){
  const model=String(shipment.TransportInformation?.DistributionModel||shipment.DistributionModel||"").trim();
  const normalized=model.toLowerCase().replace(/[^a-z]/g,"");
  if(normalized==="dropshipment"||normalized==="dropship"){
-  return {label:"Excluded from warehouse picking",kind:"excluded",reason:"DropShipment indicates this shipment is handled outside the warehouse picking flow. It must not become a WMS pick task."};
+  return {label:"Warehouse fulfilment",kind:"review",reason:"DropShipment describes the shipping arrangement managed by Bygghemma. This order is still picked and prepared in your warehouse."};
  }
  if(!model){
   return {label:"Review required",kind:"review",reason:"Zhipster did not provide a distribution model. Fulfilment responsibility cannot be established from shipment status alone."};
