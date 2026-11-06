@@ -45,7 +45,19 @@ async function rpc(name, body) {
   let data;
   try { data = raw ? JSON.parse(raw) : null; } catch { data = null; }
   if (!response.ok) {
-    // Keep database internals and privileged response details out of the client response.
+    const safeMessages = [
+      "Insufficient stock at the assigned location. Record a receipt or stock adjustment before picking.",
+      "This order line has no article master record. Refresh the shipment before picking.",
+      "Open pick line not found","Picked quantity exceeds required quantity",
+      "DropShipment cannot be approved for warehouse picking",
+      "Shipment has no positive requested article quantities",
+      "Picking must be completed before packing","Warehouse work is not awaiting packing",
+      "A packed package is required before dispatch","Prepared dispatch not found",
+      "Package weight and all dimensions must be greater than zero",
+      "No picked quantities are available to pack","Shipment not found"
+    ];
+    const dbMessage = data && typeof data.message === "string" ? data.message : "";
+    if (safeMessages.some(message => dbMessage.includes(message))) throw new Error(dbMessage);
     throw new Error(`WMS database request failed (HTTP ${response.status}).`);
   }
   return data;
