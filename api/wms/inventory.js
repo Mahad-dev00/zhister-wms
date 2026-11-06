@@ -22,7 +22,18 @@ async function rpc(name,body){
   });
   const raw=await response.text();let data;
   try{data=raw?JSON.parse(raw):null}catch{data=null}
-  if(!response.ok)throw new Error("WMS inventory request failed (HTTP "+response.status+").");
+  if(!response.ok){
+    const safeMessages=[
+      "Enter a non-zero stock quantity","Received quantity must be positive",
+      "Unsupported stock movement type",
+      "Article not found. Import an order containing this article first.",
+      "Active warehouse location not found",
+      "This adjustment would make on-hand stock negative"
+    ];
+    const dbMessage=data&&typeof data.message==="string"?data.message:"";
+    if(safeMessages.some(message=>dbMessage.includes(message)))throw new Error(dbMessage);
+    throw new Error("WMS inventory request failed (HTTP "+response.status+").");
+  }
   return data;
 }
 module.exports=async function handler(req,res){
