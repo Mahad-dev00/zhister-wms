@@ -243,3 +243,259 @@ $("#printPick").onclick=()=>window.print();$("#printReport").onclick=()=>window.
 function renderAll(){renderOverview();renderOrders();renderProducts();renderPicking();renderPacking();renderShipping();$("#reportOrders").textContent=orders.length}
 renderAll();
 loadWmsShipments();
+
+
+/* Enterprise WMS interactions: client-side views over the existing WMS API. */
+let orderSort={key:"created_at",direction:"desc"};
+let orderPage=1;
+let expandedOrders=new Set();
+let ordersLoading=true;
+let ordersLoadError="";
+const workflowLabel=s=>{
+ const w=s.warehouse_work||{},e=s.eligibility||w.eligibility||"needs_review",state=w.status||"not_started";
+ if(e==="not_eligible")return "Excluded";
+ if(e==="on_hold"||state==="on_hold")return "On hold";
+ if(state==="dispatched")return "Shipped";
+ if(state==="ready_to_dispatch")return "Packed";
+ if(state==="packing")return "Picked";
+ if(state==="picking")return "Picking";
+ if(state==="ready_to_pick")return "Allocated";
+ return "New";
+};
+const workflowClass=s=>({
+ "New":"wms-new","On hold":"wms-hold","Partially allocated":"wms-partial",
+ "Allocated":"wms-allocated","Picking":"wms-picking","Picked":"wms-picked",
+ "Packed":"wms-packed","Shipped":"wms-shipped","Excluded":"wms-cancelled"
+}[workflowLabel(s)]||"wms-new");
+const wmsBadge=s=>'<span class="status-chip wms-status '+workflowClass(s)+'">'+safeText(workflowLabel(s))+'</span>';
+const fmtDate=v=>v?new Intl.DateTimeFormat("en-GB",{dateStyle:"medium",timeStyle:"short"}).format(new Date(v)):"—";
+const shipmentSearch=s=>{
+ const c=s.customer||{};
+ return [s.id,s.external_order_number,s.external_shipment_number,s.external_shipment_id,
+ s.source_status,s.distribution_model,c.name,c.postal_code,c.city,c.street,
+ ...(s.shipment_lines||[]).flatMap(l=>[l.supplier_article_number,l.buyer_article_number,l.description])]
+ .join(" ").toLowerCase();
+};
+function filteredShipments(){
+ const q=($("#orderSearch")?.value||"").trim().toLowerCase();
+ const status=$("#statusFilter")?.value||"";
+ const from=$("#orderDateFrom")?.value||"",to=$("#orderDateTo")?.value||"";
+ return wmsShipments.filter(s=>{
+  const label=workflowLabel(s),c=s.customer||{};
+  const date=s.created_at?new Date(s.created_at):null;
+  const dateKey=date&&!Number.isNaN(date.getTime())?date.toISOString().slice(0,10):"";
+  const statusMatch=!status||
+   (status==="needs_review"&&label==="New")||
+   (status==="not_eligible"&&label==="Excluded")||
+   (status==="on_hold"&&label==="On hold")||
+   (status==="ready_to_pick"&&label==="Allocated")||
+   (status==="picking"&&label==="Picking")||
+   (status==="packing"&&label==="Picked")||
+   (status==="ready_to_dispatch"&&label==="Packed")||
+   (status==="dispatched"&&label==="Shipped");
+  return statusMatch&&(!q||shipmentSearch(s).includes(q))&&(!from||(dateKey&&dateKey>=from))&&(!to||(dateKey&&dateKey<=to));
+ });
+}
+function orderSortValue(s,key){
+ const c=s.customer||{},w=s.warehouse_work||{};
+ if(key==="workflow")return workflowLabel(s);
+ if(key==="line_count")return (s.shipment_lines||[]).length;
+ if(key==="customer")return c.name||"";
+ if(key==="city")return [c.postal_code,c.city].join(" ");
+ if(key==="created_at")return s.created_at||"";
+ return s[key]||"";
+}
+function renderOrders(){
+ const body=$("#orderRows");if(!body)return;
+ const rows=filteredShipments().sort((a,b)=>{
+  const av=orderSortValue(a,orderSort.key),bv=orderSortValue(b,orderSort.key);
+  const cmp=typeof av==="number"&&typeof bv==="number"?av-bv:String(av).localeCompare(String(bv),undefined,{numeric:true,sensitivity:"base"});
+  return orderSort.direction==="asc"?cmp:-cmp;
+ });
+ const size=Number($("#orderPageSize")?.value||10),pages=Math.max(1,Math.ceil(rows.length/size));
+ orderPage=Math.min(orderPage,pages);
+ const start=(orderPage-1)*size,visible=rows.slice(start,start+size);
+ $("#orderCount").textContent=rows.length;
+ $("#orderPageInfo").textContent=rows.length?("Showing "+(start+1)+"–"+Math.min(start+size,rows.length)+" of "+rows.length):"0 orders";
+ $("#orderPageNumber").textContent=orderPage+" / "+pages;
+ $("#orderPrev").disabled=orderPage<=1;$("#orderNext").disabled=orderPage>=pages;
+ $$("[data-sort]").forEach(th=>{
+  th.classList.toggle("sorted",th.dataset.sort===orderSort.key);
+  const existing=th.querySelector(".sort-arrow");if(existing)existing.remove();
+  const arrow=document.createElement("span");arrow.className="sort-arrow";
+  arrow.textContent=th.dataset.sort===orderSort.key?(orderSort.direction==="asc"?" ↑":" ↓"):" ↕";
+  th.appendChild(arrow);
+ });
+ if(ordersLoading&&!wmsShipments.length){
+  body.innerHTML='<tr><td colspan="8"><div class="table-loading"><i></i><i></i><i></i></div>Loading warehouse orders…</td></tr>';return;
+ }
+ if(!visible.length){
+  body.innerHTML='<tr><td colspan="8"><div class="table-empty"><strong>No orders found</strong><span>Change the filters or import a Bygghemma order from Receive order.</span></div></td></tr>';return;
+ }
+ body.innerHTML=visible.map(s=>{
+  const c=s.customer||{},lines=s.shipment_lines||[],work=s.warehouse_work||{};
+  const id=s.id;
+  const expanded=expandedOrders.has(id);
+  return '<tr class="order-data-row"><td><button class="expand-order" data-expand="'+safeText(id)+'" aria-expanded="'+expanded+'">'+(expanded?"−":"+")+'</button><button class="order-link" data-open-order="'+safeText(id)+'">'+safeText(s.external_order_number||"—")+'</button><span class="sub-cell">'+safeText(s.external_shipment_number||s.external_shipment_id||"")+'</span></td><td>'+wmsBadge(s)+'</td><td>'+safeText(s.distribution_model||"Not supplied")+'</td><td class="numeric">'+lines.length+'</td><td>'+safeText(c.name||"Not supplied")+'</td><td>'+safeText([c.postal_code,c.city].filter(Boolean).join(" ")||"Not supplied")+'</td><td>'+fmtDate(s.created_at)+'</td><td><button class="text-btn" data-expand="'+safeText(id)+'">'+(expanded?"Hide":"Details")+'</button></td></tr>'+
+  (expanded?'<tr class="order-detail-row"><td colspan="8">'+orderDetailMarkup(s)+'</td></tr>':"");
+ }).join("");
+ body.querySelectorAll("[data-expand]").forEach(b=>b.onclick=()=>{const id=b.dataset.expand;expandedOrders.has(id)?expandedOrders.delete(id):expandedOrders.add(id);renderOrders();});
+ body.querySelectorAll("[data-open-order]").forEach(b=>b.onclick=()=>showWmsShipment(b.dataset.openOrder));
+ body.querySelectorAll("[data-load-history]").forEach(b=>b.onclick=()=>loadShipmentHistory(b.dataset.loadHistory));
+}
+function orderDetailMarkup(s){
+ const lines=s.shipment_lines||[],work=s.warehouse_work||{},task=work.pick_task||{},taskLines=task.lines||[];
+ const packages=work.packages||[],dispatches=work.dispatches||[];
+ const c=s.customer||{};
+ const progress=lines.reduce((n,l)=>{const pl=taskLines.find(x=>x.shipment_line_id===l.id);return n+(pl&&Number(pl.quantity_picked)>=Number(pl.quantity_to_pick)?1:0)},0);
+ const rows=lines.map(l=>{
+  const pl=taskLines.find(x=>x.shipment_line_id===l.id)||{};
+  const packed=packages.length?Number(pl.quantity_picked||0):0;
+  return '<tr><td><strong>'+safeText(l.supplier_article_number||"—")+'</strong></td><td>'+safeText(l.buyer_article_number||"—")+'</td><td>'+safeText(l.description||"—")+'</td><td class="numeric">'+safeText(l.requested_quantity??"—")+'</td><td class="numeric">'+safeText(pl.quantity_to_pick??0)+'</td><td class="numeric">'+safeText(pl.quantity_picked??0)+'</td><td class="numeric">'+packed+'</td><td>Not assigned</td></tr>';
+ }).join("");
+ return '<div class="order-detail"><div class="detail-summary"><div><small>DELIVER TO</small><strong>'+safeText(c.name||"Not supplied")+'</strong><span>'+safeText([c.street,c.postal_code,c.city].filter(Boolean).join(", ")||"Address not supplied")+'</span></div><div><small>WAREHOUSE PROGRESS</small><strong>'+progress+' of '+lines.length+' lines picked</strong><span>'+safeText(work.hold_reason||"No active hold reason")+'</span></div><div><small>PACKAGES / DISPATCHES</small><strong>'+packages.length+' / '+dispatches.length+'</strong><span>Created '+fmtDate(s.created_at)+'</span></div></div><div class="table-wrap"><table class="detail-lines-table"><thead><tr><th>SUPPLIER ITEM</th><th>BUYER ARTICLE</th><th>DESCRIPTION</th><th>ORDERED</th><th>ALLOCATED</th><th>PICKED</th><th>PACKED</th><th>LOCATION</th></tr></thead><tbody>'+(rows||'<tr><td colspan="8">No article lines saved.</td></tr>')+'</tbody></table></div><div class="history-head"><strong>Activity history</strong><button class="btn subtle" data-load-history="'+safeText(s.id)+'">Load history</button></div><div class="shipment-history" id="history-'+safeText(s.id)+'"><span class="muted">Load audit history for this shipment.</span></div></div>';
+}
+async function loadShipmentHistory(id){
+ const host=$("#history-"+CSS.escape(id));if(!host)return;
+ host.textContent="Loading activity history…";
+ try{
+  const r=await fetch("/api/wms/shipments?historyFor="+encodeURIComponent(id),{headers:{Accept:"application/json"},cache:"no-store"});
+  const body=await r.json();if(!r.ok)throw new Error(body.error||"Could not load history.");
+  const history=Array.isArray(body.history)?body.history:[];
+  host.innerHTML=history.length?'<ol class="history-list">'+history.map(h=>'<li><time>'+fmtDate(h.occurred_at)+'</time><strong>'+safeText(String(h.action||"update").replace(/_/g," "))+'</strong><span>'+safeText(JSON.stringify(h.details||{}))+'</span></li>').join("")+'</ol>':'<span class="muted">No recorded activity yet.</span>';
+ }catch(e){host.innerHTML='<span class="inline-error">'+safeText(e.message)+'</span>'}
+}
+function exportOrders(){
+ const rows=filteredShipments();
+ csv("zhister-wms-orders.csv",[["Order number","Shipment number","Shipment ID","Customer","Postcode","City","Source status","Workflow status","Distribution model","Article","Description","Ordered","Confirmed","Dispatched"],...rows.flatMap(s=>(s.shipment_lines||[]).map(l=>[s.external_order_number,s.external_shipment_number,s.external_shipment_id,s.customer?.name,s.customer?.postal_code,s.customer?.city,s.source_status,workflowLabel(s),s.distribution_model,l.supplier_article_number,l.description,l.requested_quantity,l.confirmed_quantity,l.dispatched_quantity]))]);
+}
+async function loadWmsShipments(){
+ const body=$("#orderRows");if(body&&!wmsShipments.length)body.innerHTML='<tr><td colspan="8"><div class="table-loading"><i></i><i></i><i></i></div>Loading warehouse orders…</td></tr>';
+ ordersLoading=true;ordersLoadError="";
+ try{
+  const response=await fetch("/api/wms/shipments",{headers:{Accept:"application/json"},cache:"no-store"});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(data.error||"Could not load warehouse orders.");
+  wmsShipments=Array.isArray(data.shipments)?data.shipments:[];
+  ordersLoading=false;renderOverview();renderOrders();renderOperations();renderPicking();renderPacking();renderShipping();
+  $("#reportOrders").textContent=wmsShipments.length;
+  const alert=$("#appAlert");if(alert){alert.hidden=true;alert.textContent=""}
+ }catch(error){
+  ordersLoading=false;ordersLoadError=error.message||"Warehouse data could not be loaded.";
+  const alert=$("#appAlert");if(alert){alert.hidden=false;alert.className="inline-alert error";alert.textContent=ordersLoadError}
+  renderOrders();
+ }
+}
+function renderPicking(){
+ const host=$("#pickGroups");if(!host)return;
+ const q=($("#pickSearch")?.value||"").trim().toLowerCase();
+ const filter=$("#pickStatus")?.value||"";
+ const groups=new Map();
+ const pickable=wmsShipments.filter(s=>{
+  const w=s.warehouse_work||{},t=w.pick_task||{};
+  return ["open","in_progress","completed"].includes(t.status)&&w.eligibility==="eligible";
+ });
+ pickable.forEach(s=>{
+  const w=s.warehouse_work||{},task=w.pick_task||{},c=s.customer||{};
+  (s.shipment_lines||[]).forEach(l=>{
+   const pl=(task.lines||[]).find(x=>x.shipment_line_id===l.id);if(!pl)return;
+   const sku=l.supplier_article_number||l.buyer_article_number||"Uncoded";
+   const text=[sku,l.buyer_article_number,l.description].join(" ").toLowerCase();
+   const done=Number(pl.quantity_picked)>=Number(pl.quantity_to_pick);
+   if(q&&!text.includes(q)&&!shipmentSearch(s).includes(q))return;
+   if(filter==="todo"&&done)return;if(filter==="done"&&!done)return;
+   if(!groups.has(sku))groups.set(sku,{sku,description:l.description||"Article description unavailable",rows:[]});
+   groups.get(sku).rows.push({s,l,pl,task,c});
+  });
+ });
+ if(!pickable.length){host.innerHTML='<div class="panel empty-state"><h3>No approved picking tasks</h3><p>Review and approve eligible shipments in Warehouse operations before picking. Drop shipments remain excluded.</p></div>';return}
+ if(!groups.size){host.innerHTML='<div class="panel empty-state"><h3>No matching pick lines</h3><p>Clear the article search or change the work-status filter.</p></div>';return}
+ host.innerHTML=[...groups.values()].map(g=>{
+  const total=g.rows.reduce((n,x)=>n+Number(x.pl.quantity_to_pick||0),0),done=g.rows.reduce((n,x)=>n+Number(x.pl.quantity_picked||0),0);
+  return '<article class="pick-group"><div class="pick-group-head"><div class="sku-icon">▧</div><div><strong>'+safeText(g.description)+'</strong><small>Article '+safeText(g.sku)+' · '+g.rows.length+' order lines</small></div><div class="pick-total"><b>'+done+' / '+total+'</b><small>UNITS PICKED</small></div></div><div class="pick-lines">'+g.rows.map(({s,l,pl,task,c})=>{
+   const complete=Number(pl.quantity_picked)>=Number(pl.quantity_to_pick),progress=(s.shipment_lines||[]).filter(line=>(task.lines||[]).some(x=>x.shipment_line_id===line.id&&Number(x.quantity_picked)>=Number(x.quantity_to_pick))).length;
+   const lineCount=(s.shipment_lines||[]).filter(line=>(task.lines||[]).some(x=>x.shipment_line_id===line.id)).length;
+   return '<div class="pick-line enterprise-pick-line"><div><strong>Order '+safeText(s.external_order_number||s.external_shipment_number||"—")+'</strong><small>'+safeText(c.name||"Customer not supplied")+'</small><small>'+progress+' of '+lineCount+' lines picked</small></div><div><strong>'+safeText(g.sku)+'</strong><small>'+safeText(l.description||"")+'</small></div><div class="pick-location"><small>LOCATION</small><strong>Not assigned</strong></div><div class="pick-quantity"><small>QUANTITY</small><input type="number" min="0" max="'+Number(pl.quantity_to_pick)+'" step="any" value="'+Number(pl.quantity_picked)+'" id="pickqty-'+safeText(pl.shipment_line_id)+'" '+(complete?"disabled":"")+'></div><button class="btn primary pick-save" data-save-pick="'+safeText(pl.shipment_line_id)+'" data-task="'+safeText(task.id)+'" '+(complete?"disabled":"")+'>'+(complete?"Picked":"Save picked qty")+'</button></div>';
+  }).join("")+'</div></article>';
+ }).join("");
+ host.querySelectorAll("[data-save-pick]").forEach(b=>b.onclick=()=>{
+  const input=$("#pickqty-"+CSS.escape(b.dataset.savePick)),value=Number(input?.value);
+  if(!input||!Number.isFinite(value)||value<0||value>Number(input.max)){toast("Enter a valid picked quantity within the required quantity.");return}
+  runWarehouseAction({action:"pick",pickTaskId:b.dataset.task,shipmentLineId:b.dataset.savePick,quantityPicked:value});
+ });
+}
+let selectedWmsPack=null;
+function renderPacking(){
+ const list=wmsShipments.filter(s=>(s.warehouse_work||{}).status==="packing");
+ $("#packingOrders").innerHTML=list.length?list.map(s=>{
+  const c=s.customer||{},lines=s.shipment_lines||[],task=s.warehouse_work?.pick_task||{};
+  const done=(task.lines||[]).filter(l=>Number(l.quantity_picked)>=Number(l.quantity_to_pick)).length;
+  return '<div class="packing-order"><div class="sku-icon">▣</div><div><strong>Order '+safeText(s.external_order_number||"—")+'</strong><small>'+safeText(c.name||"Customer not supplied")+' · '+lines.length+' lines · '+done+' / '+lines.length+' picked</small></div><button class="btn subtle" data-select-pack="'+safeText(s.id)+'">Open →</button></div>';
+ }).join(""):'<div class="empty-state"><h3>Nothing to pack</h3><p>Orders appear here when all pick quantities have been confirmed.</p></div>';
+ $("#packingOrders").querySelectorAll("[data-select-pack]").forEach(b=>b.onclick=()=>{selectedWmsPack=b.dataset.selectPack;showWmsPackDetail()});
+ if(selectedWmsPack&&list.some(s=>s.id===selectedWmsPack))showWmsPackDetail();
+ else if(!list.length)$("#packDetail").innerHTML='<div class="empty-state"><h3>No orders awaiting packing</h3><p>Completed pick tasks will appear here.</p></div>';
+}
+function showWmsPackDetail(){
+ const s=wmsShipments.find(x=>x.id===selectedWmsPack);if(!s)return;
+ const work=s.warehouse_work||{},task=work.pick_task||{},c=s.customer||{};
+ const packages=work.packages||[];
+ $("#packDetail").innerHTML='<div class="panel-head"><div><div class="eyebrow">PACKING ORDER</div><h2>Order '+safeText(s.external_order_number||"—")+'</h2><p class="muted">'+safeText(c.name||"Customer not supplied")+'</p></div>'+wmsBadge(s)+'</div><h3>Verify picked quantities</h3><div class="pack-items">'+(s.shipment_lines||[]).map(l=>{
+  const pl=(task.lines||[]).find(x=>x.shipment_line_id===l.id)||{};
+  return '<div class="pack-item"><span><strong>'+safeText(l.supplier_article_number||l.buyer_article_number||"—")+'</strong> · '+safeText(l.description||"")+'</span><strong>'+Number(pl.quantity_picked||0)+' / '+Number(pl.quantity_to_pick||l.requested_quantity||0)+'</strong></div>';
+ }).join("")+'</div><h3>Package details</h3><div class="pack-form"><label>Package type<input id="wmsPackType" value="parcel" required></label><label>Weight (kg)<input id="wmsPackWeight" type="number" min="0.01" step="0.01" required></label><label>Length (cm)<input id="wmsPackLength" type="number" min="0.01" step="0.01" required></label><label>Width (cm)<input id="wmsPackWidth" type="number" min="0.01" step="0.01" required></label><label>Height (cm)<input id="wmsPackHeight" type="number" min="0.01" step="0.01" required></label></div><button class="btn primary" id="wmsSavePackage">Save package</button><div class="package-list">'+packages.map(p=>'<div class="package-row"><strong>Package '+p.package_number+'</strong><span>'+safeText(p.package_type||"Package")+' · '+safeText(p.weight_kg||"—")+' kg · '+safeText([p.length_cm,p.width_cm,p.height_cm].join(" × "))+' cm</span></div>').join("")+'</div>';
+ $("#wmsSavePackage").onclick=()=>{
+  const values=["wmsPackWeight","wmsPackLength","wmsPackWidth","wmsPackHeight"].map(id=>Number($("#"+id).value));
+  if(values.some(v=>!Number.isFinite(v)||v<=0)){toast("Enter positive package weight and all three dimensions.");return}
+  runWarehouseAction({action:"pack",warehouseWorkId:work.id,packageType:$("#wmsPackType").value,weightKg:values[0],lengthCm:values[1],widthCm:values[2],heightCm:values[3]});
+ };
+}
+function renderShipping(){
+ const rows=wmsShipments.filter(s=>["ready_to_dispatch","dispatched"].includes(s.warehouse_work?.status));
+ $("#shippingRows").innerHTML=rows.length?rows.map(s=>{
+  const c=s.customer||{},w=s.warehouse_work||{},ds=w.dispatches||[],latest=ds[0]||{};
+  const form=w.status==="ready_to_dispatch"&&!ds.some(d=>d.status==="prepared");
+  const confirm=latest.status==="prepared";
+  return '<tr><td><strong>'+safeText(s.external_order_number||"—")+'</strong><span class="sub-cell">'+safeText(s.external_shipment_number||s.external_shipment_id)+'</span></td><td>'+safeText(c.name||"Not supplied")+'</td><td>'+safeText(latest.carrier||"Not recorded")+'</td><td>'+safeText((w.packages||[]).map(p=>p.weight_kg+" kg").join(", ")||"—")+'</td><td>'+safeText((w.packages||[]).map(p=>[p.length_cm,p.width_cm,p.height_cm].join(" × ")+" cm").join("; ")||"—")+'</td><td>'+wmsBadge(s)+'</td><td>'+(form?'<div class="dispatch-form"><input id="carrier-'+safeText(s.id)+'" placeholder="Carrier" aria-label="Carrier" required><input id="tracking-'+safeText(s.id)+'" placeholder="Tracking ref. (optional)" aria-label="Tracking reference"><button class="btn primary" data-prepare-dispatch="'+safeText(w.id)+'" data-shipment="'+safeText(s.id)+'">Prepare handover</button></div>':confirm?'<span class="muted">'+safeText(latest.carrier||"Carrier")+' · '+safeText(latest.tracking_reference||"No tracking ref.")+'</span><button class="btn primary" data-confirm-dispatch="'+safeText(latest.id)+'">Confirm carrier handover</button>':safeText(latest.status==="handed_over"?"Handed over":latest.status||"Dispatched"))+'</td></tr>';
+ }).join(""):'<tr><td colspan="7"><div class="table-empty"><strong>No packed shipments in dispatch queue</strong><span>Fully packed warehouse orders will appear here. Carrier booking and labels remain in Zhipster.</span></div></td></tr>';
+ $("#shippingRows").querySelectorAll("[data-prepare-dispatch]").forEach(b=>b.onclick=()=>{
+  const carrier=$("#carrier-"+CSS.escape(b.dataset.shipment)).value.trim(),tracking=$("#tracking-"+CSS.escape(b.dataset.shipment)).value.trim();
+  if(!carrier){toast("Enter the carrier before preparing dispatch.");return}
+  runWarehouseAction({action:"dispatch_prepare",warehouseWorkId:b.dataset.prepareDispatch,carrier,trackingReference:tracking});
+ });
+ $("#shippingRows").querySelectorAll("[data-confirm-dispatch]").forEach(b=>b.onclick=()=>{
+  if(!window.confirm("Confirm that this packed shipment has physically been handed to the carrier?"))return;
+  runWarehouseAction({action:"dispatch_confirm",dispatchId:b.dataset.confirmDispatch});
+ });
+}
+function showWmsShipment(id){
+ const s=wmsShipments.find(x=>x.id===id);if(!s)return;
+ const c=s.customer||{},w=s.warehouse_work||{},lines=s.shipment_lines||[],task=w.pick_task||{},taskLines=task.lines||[];
+ $("#modalContent").innerHTML='<div class="eyebrow">ZHIPSTER SHIPMENT / '+safeText(s.external_shipment_id)+'</div><h2>'+safeText(s.external_order_number||s.external_shipment_number||"Shipment")+'</h2><p class="muted">'+safeText(c.name||"Customer not supplied")+' · '+safeText([c.street,c.postal_code,c.city].filter(Boolean).join(", "))+'</p><div class="detail-grid"><div class="detail-box"><small>ZHIPSTER STATUS</small><strong>'+safeText(s.source_status||"Unknown")+'</strong></div><div class="detail-box"><small>WORKFLOW STATUS</small><strong>'+safeText(workflowLabel(s))+'</strong></div><div class="detail-box"><small>DISTRIBUTION MODEL</small><strong>'+safeText(s.distribution_model||"Not supplied")+'</strong></div><div class="detail-box"><small>ARTICLE LINES</small><strong>'+lines.length+'</strong></div></div><p class="muted">'+safeText(w.hold_reason||"No active warehouse hold.")+'</p><div class="table-wrap"><table class="modal-lines"><thead><tr><th>SUPPLIER ITEM</th><th>BUYER ARTICLE</th><th>DESCRIPTION</th><th>ORDERED</th><th>ALLOCATED</th><th>PICKED</th></tr></thead><tbody>'+lines.map(l=>{const pl=taskLines.find(x=>x.shipment_line_id===l.id)||{};return '<tr><td>'+safeText(l.supplier_article_number||"—")+'</td><td>'+safeText(l.buyer_article_number||"—")+'</td><td>'+safeText(l.description||"—")+'</td><td>'+safeText(l.requested_quantity??"—")+'</td><td>'+safeText(pl.quantity_to_pick??0)+'</td><td>'+safeText(pl.quantity_picked??0)+'</td></tr>'}).join("")+'</tbody></table></div><div class="modal-actions"><button class="btn" onclick="closeModal()">Close</button></div>';
+ $("#modal").classList.add("show");
+}
+function bindEnterpriseControls(){
+ $("#orderSearch").oninput=()=>{orderPage=1;renderOrders()};
+ $("#statusFilter").onchange=()=>{orderPage=1;renderOrders()};
+ $("#orderDateFrom").onchange=()=>{orderPage=1;renderOrders()};
+ $("#orderDateTo").onchange=()=>{orderPage=1;renderOrders()};
+ $("#clearFilters").onclick=()=>{$("#orderSearch").value="";$("#statusFilter").value="";$("#orderDateFrom").value="";$("#orderDateTo").value="";orderPage=1;renderOrders()};
+ $("#orderPageSize").onchange=()=>{orderPage=1;renderOrders()};
+ $("#orderPrev").onclick=()=>{orderPage=Math.max(1,orderPage-1);renderOrders()};
+ $("#orderNext").onclick=()=>{orderPage++;renderOrders()};
+ $("#ordersTable").querySelectorAll("[data-sort]").forEach(th=>th.onclick=()=>{
+  const key=th.dataset.sort;
+  orderSort={key,direction:orderSort.key===key&&orderSort.direction==="asc"?"desc":"asc"};orderPage=1;renderOrders();
+ });
+ $("#globalSearch").addEventListener("keydown",e=>{
+  if(e.key!=="Enter")return;
+  const q=e.currentTarget.value.trim();if(!q)return;
+  const match=wmsShipments.find(s=>shipmentSearch(s).includes(q.toLowerCase()));
+  if(match){go("orders");$("#orderSearch").value=q;orderPage=1;renderOrders();expandedOrders.add(match.id);renderOrders();return}
+  const productMatch=PRODUCTS.some(p=>(p.sku+" "+p.name).toLowerCase().includes(q.toLowerCase()));
+  if(productMatch){go("products");$("#productSearch").value=q;renderProducts();return}
+  go("orders");$("#orderSearch").value=q;orderPage=1;renderOrders();
+ });
+ $("#sidebarCollapse")?.addEventListener("click",()=>document.body.classList.toggle("sidebar-collapsed"));
+}
+bindEnterpriseControls();
