@@ -33,7 +33,7 @@ begin
   v_dispatch := coalesce(v_shipment->'DispatchOrders',p_payload->'DispatchOrders','[]'::jsonb);
   if jsonb_typeof(v_dispatch)<>'array' then raise exception 'Zhipster DispatchOrders payload is not an array'; end if;
 
-  if lower(regexp_replace(coalesce(v_model,''),'[^a-z]','','g')) in ('dropship','dropshipment') then
+  if regexp_replace(lower(coalesce(v_model,'')),'[^a-z]','','g') in ('dropship','dropshipment') then
     v_eligibility := 'not_eligible'::wms.eligibility_status;
   else
     v_eligibility := 'needs_review'::wms.eligibility_status;

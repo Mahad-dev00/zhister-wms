@@ -8,7 +8,7 @@ begin
   if p_eligibility not in ('eligible'::wms.eligibility_status,'not_eligible'::wms.eligibility_status,'on_hold'::wms.eligibility_status) then raise exception 'Unsupported eligibility decision'; end if;
   select * into v_shipment from wms.shipments where id=p_shipment_id for update;
   if not found then raise exception 'Shipment not found'; end if;
-  if p_eligibility='eligible'::wms.eligibility_status and lower(regexp_replace(coalesce(v_shipment.distribution_model,''),'[^a-z]','','g')) in ('dropship','dropshipment') then raise exception 'DropShipment cannot be approved for warehouse picking'; end if;
+  if p_eligibility='eligible'::wms.eligibility_status and regexp_replace(lower(coalesce(v_shipment.distribution_model,'')),'[^a-z]','','g') in ('dropship','dropshipment') then raise exception 'DropShipment cannot be approved for warehouse picking'; end if;
   update wms.shipments set eligibility=p_eligibility,updated_at=now() where id=p_shipment_id;
   insert into wms.warehouse_work(shipment_id,eligibility,status,hold_reason,reviewed_by,reviewed_at,updated_at)
   values(p_shipment_id,p_eligibility,case when p_eligibility='eligible'::wms.eligibility_status then 'ready_to_pick'::wms.work_status else 'on_hold'::wms.work_status end,
