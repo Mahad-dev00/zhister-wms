@@ -486,9 +486,11 @@ function bindEnterpriseControls(){
  $("#orderPageSize").onchange=()=>{orderPage=1;renderOrders()};
  $("#orderPrev").onclick=()=>{orderPage=Math.max(1,orderPage-1);renderOrders()};
  $("#orderNext").onclick=()=>{orderPage++;renderOrders()};
- $("#ordersTable").querySelectorAll("[data-sort]").forEach(th=>th.onclick=()=>{
-  const key=th.dataset.sort;
-  orderSort={key,direction:orderSort.key===key&&orderSort.direction==="asc"?"desc":"asc"};orderPage=1;renderOrders();
+ $("#ordersTable").querySelectorAll("[data-sort]").forEach(th=>{
+  th.tabIndex=0;th.setAttribute("role","button");
+  const sort=()=>{const key=th.dataset.sort;orderSort={key,direction:orderSort.key===key&&orderSort.direction==="asc"?"desc":"asc"};orderPage=1;renderOrders()};
+  th.onclick=sort;
+  th.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();sort()}});
  });
  $("#globalSearch").addEventListener("keydown",e=>{
   if(e.key!=="Enter")return;
@@ -562,6 +564,7 @@ async function loadWmsInventory(){
  }catch(error){
   const alert=$("#appAlert");if(alert){alert.hidden=false;alert.className="inline-alert error";alert.textContent=error.message||"Inventory data could not be loaded."}
   const stock=$("#stockRows");if(stock)stock.innerHTML='<tr><td colspan="7"><div class="table-empty"><strong>Inventory unavailable</strong><span>Check the database connection and reload.</span></div></td></tr>';
+  throw error;
  }
 }
 async function loadWmsShipments(){
