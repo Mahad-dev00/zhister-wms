@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/zhipster-sync",
+      "schedule": "55 23 * * *"
+    }
+  ]
+}
