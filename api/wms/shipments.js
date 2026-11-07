@@ -111,7 +111,7 @@ module.exports = async function handler(req, res) {
       });
       return res.status(200).json({ ok: true, result });
     }
-    if (body.action === "pick") {
+    if (body.action === "pick") {\n      return res.status(409).json({ error: "Picking is disabled until customer-specific ordered quantities are verified from the source API." });
       const pickTaskId = String(body.pickTaskId || "").trim();
       const shipmentLineId = String(body.shipmentLineId || "").trim();
       const quantity = Number(body.quantityPicked);
