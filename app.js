@@ -63,7 +63,7 @@ function renderOperations(){
    html+='<tr><td><strong>'+safeText(l.supplier_article_number||"—")+'</strong></td><td>'+safeText(l.buyer_article_number||"—")+'</td><td>'+safeText(l.description||"—")+'</td>';
    html+='</tr>';
   });
-  if(!lines.length)html+='<tr><td colspan="7">No article lines stored.</td></tr>';
+  if(!lines.length)html+='<tr><td colspan="3">No article lines stored.</td></tr>';
   html+='</tbody></table></div><div class="ops-footer">'+lines.length+' article lines · Eligibility: '+safeText(s.eligibility||"needs_review")+'</div>';
   if(eligible&&state==="packing")html+='<div class="ops-pack"><strong>Picking complete — record the actual package dimensions</strong><div class="ops-pack-grid"><label>Package type<input id="pack-type-'+work.id+'" value="parcel"></label><label>Weight kg<input id="pack-weight-'+work.id+'" type="number" min="0.01" step="0.01"></label><label>Length cm<input id="pack-length-'+work.id+'" type="number" min="0.01" step="0.01"></label><label>Width cm<input id="pack-width-'+work.id+'" type="number" min="0.01" step="0.01"></label><label>Height cm<input id="pack-height-'+work.id+'" type="number" min="0.01" step="0.01"></label><button class="btn primary" data-pack-shipment="'+work.id+'">Save package</button></div></div>';
   return html+'</article>';
