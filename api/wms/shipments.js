@@ -111,18 +111,8 @@ module.exports = async function handler(req, res) {
       });
       return res.status(200).json({ ok: true, result });
     }
-    if (body.action === "pick") {\n      return res.status(409).json({ error: "Picking is disabled until customer-specific ordered quantities are verified from the source API." });
-      const pickTaskId = String(body.pickTaskId || "").trim();
-      const shipmentLineId = String(body.shipmentLineId || "").trim();
-      const quantity = Number(body.quantityPicked);
-      if (!/^[0-9a-f-]{36}$/i.test(pickTaskId) || !/^[0-9a-f-]{36}$/i.test(shipmentLineId) || !Number.isFinite(quantity) || quantity < 0) {
-        return res.status(400).json({ error: "Valid pick task, article line and picked quantity are required." });
-      }
-      const result = await rpc("wms_update_pick_line", {
-        p_pick_task_id: pickTaskId, p_shipment_line_id: shipmentLineId,
-        p_quantity_picked: quantity, p_actor: user.id
-      });
-      return res.status(200).json({ ok: true, result });
+    if (body.action === "pick") {
+      return res.status(409).json({ error: "Picking is disabled until customer-specific ordered quantities are verified from the source API." });
     }
     if (body.action === "pack") {
       const workId = String(body.warehouseWorkId || "").trim();
