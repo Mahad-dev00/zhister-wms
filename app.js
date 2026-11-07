@@ -1,9 +1,9 @@
 const PRODUCTS=[
- {sku:"99566",name:"Wc-sits Ifö Sign Mjuksits",location:"A1",stock:18,allocated:4},
- {sku:"99420",name:"Wc-sits Ifö Cera Mjuksits",location:"A1",stock:16,allocated:3},
- {sku:"99488",name:"Wc-sits Ifö Spira Mjuksits",location:"A1",stock:22,allocated:5},
- {sku:"629309311",name:"WC-stol Ifö Spira 6293 Hårdsits",location:"A1",stock:12,allocated:2},
- {sku:"629308811",name:"WC-stol Ifö Spira 6293 Rimfree inkl Mjuksits",location:"A1",stock:18,allocated:6}
+ {sku:"99566",name:"Wc-sits Ifö Sign Mjuksits",location:"A1"},
+ {sku:"99420",name:"Wc-sits Ifö Cera Mjuksits",location:"A1"},
+ {sku:"99488",name:"Wc-sits Ifö Spira Mjuksits",location:"A1"},
+ {sku:"629309311",name:"WC-stol Ifö Spira 6293 Hårdsits",location:"A1"},
+ {sku:"629308811",name:"WC-stol Ifö Spira 6293 Rimfree inkl Mjuksits",location:"A1"}
 ];
 const KEY="zhister-wms-demo-v1";
 // Remove the retired prototype orders from this browser. Real WMS orders will be loaded from Supabase.
@@ -97,9 +97,9 @@ $("#modalClose").onclick=closeModal;$("#modal").onclick=e=>{if(e.target.id==="mo
 function renderProducts(){
  let q=$("#productSearch").value.toLowerCase(),loc=$("#productLocation").value;
  let rows=PRODUCTS.filter(p=>(!loc||p.location===loc)&&(!q||(p.sku+" "+p.name).toLowerCase().includes(q)));
- $("#productRows").innerHTML=rows.map(p=>`<tr><td><strong>${p.sku}</strong></td><td class="customer">${p.name}</td><td><span class="status-chip status-shipped">${p.location}</span></td><td>${p.stock}</td><td>${p.allocated}</td><td><strong>${p.stock-p.allocated}</strong></td></tr>`).join("");
- $("#locSkus").textContent=PRODUCTS.length;$("#locUnits").textContent=PRODUCTS.reduce((a,p)=>a+p.stock,0);$("#reportStock").textContent=PRODUCTS.reduce((a,p)=>a+p.stock,0);
- $("#locationProducts").innerHTML=PRODUCTS.map(p=>`<div class="loc-product"><span><strong>${p.sku}</strong> · ${p.name}</span><span>${p.stock} units</span></div>`).join("");
+ $("#productRows").innerHTML=rows.map(p=>`<tr><td><strong>${p.sku}</strong></td><td class="customer">${p.name}</td><td><span class="status-chip status-shipped">${p.location}</span></td></tr>`).join("");
+ $("#locSkus").textContent=PRODUCTS.length;
+ $("#locationProducts").innerHTML=PRODUCTS.map(p=>`<div class="loc-product"><span><strong>${p.sku}</strong> · ${p.name}</span></div>`).join("");
 }
 function renderPicking(){
  let q=$("#pickSearch").value.toLowerCase(),loc=$("#locationFilter").value,filter=$("#pickStatus").value;
@@ -129,7 +129,7 @@ function renderShipping(){
 }
 function csv(name,rows){let text=rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\n");let a=document.createElement("a"),url=URL.createObjectURL(new Blob(["\ufeff"+text],{type:"text/csv;charset=utf-8"}));a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}
 function exportOrders(){csv("zhister-orders.csv",[["WMS shipment ID","Zhipster shipment number","Order number","Source status","Distribution model","Eligibility","Supplier article","Buyer article","Description","Quantity"],...wmsShipments.flatMap(s=>(s.shipment_lines||[]).map(l=>[s.external_shipment_id,s.external_shipment_number,s.external_order_number,s.source_status,s.distribution_model,s.eligibility,l.supplier_article_number,l.buyer_article_number,l.description,l.requested_quantity]))])}
-function exportProducts(){csv("zhister-products-demo.csv",[["Article number","Product","Location","On hand","Allocated","Available"],...PRODUCTS.map(p=>[p.sku,p.name,p.location,p.stock,p.allocated,p.stock-p.allocated])])}
+function exportProducts(){csv("zhister-products.csv",[["Article number","Product","Location"],...PRODUCTS.map(p=>[p.sku,p.name,p.location])])}
 
 function safeText(value){
  return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
