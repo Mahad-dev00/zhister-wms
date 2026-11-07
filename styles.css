@@ -81,3 +81,10 @@
 .live-drop-point{margin:0;padding:12px 14px}
 .operations-panel{margin:18px 0 0}
 @media(max-width:700px){.integration-lookup{padding:16px}.integration-lookup .filter-grid{grid-template-columns:1fr}.integration-lookup #zhipsterLookupButton{width:100%}.live-shipment-card{padding:15px}.live-shipment-head h3{font-size:17px}.live-customer-profile{padding:13px}}
+
+/* Single-order lookup: one search, one result, no duplicate local index. */
+.integration-lookup{max-width:980px}
+.integration-lookup .filter-grid{grid-template-columns:minmax(220px,1fr) auto}
+.live-index-tools{display:none}
+.lookup-result{margin-top:18px}
+.lookup-success{margin:0;padding:10px 13px;border-radius:8px;background:#edf8f2;color:#16734f;font-size:12px;font-weight:650}
