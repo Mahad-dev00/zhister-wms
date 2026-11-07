@@ -147,31 +147,6 @@ function collectShipments(data){
  return data.ShipmentKey||data.ShipmentNumber?[data]:[];
 }
 
-const LIVE_SHIPMENTS_KEY="zhister-wms-live-shipment-index-v1";
-let liveShipments=JSON.parse(localStorage.getItem(LIVE_SHIPMENTS_KEY)||"[]");
-function liveShipmentSearchText(record){
- const s=record.Shipment||record.shipment||record;
- const dispatch=Array.isArray(s.DispatchOrders)?s.DispatchOrders:(record.DispatchOrders||[]);
- const lines=dispatch.flatMap(d=>Array.isArray(d.DispatchOrderLines)?d.DispatchOrderLines:[]);
- const orderNumbers=dispatch.flatMap(d=>(d.OrderReferences?.Orders||[]).map(x=>x.OrderNumber));
- return [s.ShipmentNumber,s.ShipmentStatus,s.TransportInformation?.ShippingReference,s.TransportInformation?.DeliveryReference,s.TransportInformation?.DistributionModel,...orderNumbers,...lines.flatMap(l=>[l.SuppliersArticleNumber,l.BuyersArticleNumber,l.ManufacturersArticleNumber,l.ArticleDescription,l.DispatchLineStatus])].join(" ").toLowerCase();
-}
-function rememberLiveShipments(records){
- const byKey=new Map(liveShipments.map(x=>{const s=x.Shipment||x.shipment||x;return [s.ShipmentKey||s.ShipmentNumber,x]}));
- records.forEach(x=>{const s=x.Shipment||x.shipment||x;const key=s.ShipmentKey||s.ShipmentNumber;if(key)byKey.set(key,x)});
- liveShipments=[...byKey.values()];
- localStorage.setItem(LIVE_SHIPMENTS_KEY,JSON.stringify(liveShipments));
- renderLiveShipmentIndex();
-}
-function renderLiveShipmentIndex(){
- const host=$("#zhipsterLookupResult");if(!host)return;
- const q=($("#liveItemSearch")?.value||"").trim().toLowerCase();
- const matches=liveShipments.filter(x=>!q||liveShipmentSearchText(x).includes(q));
- const count=$("#liveShipmentCount");if(count)count.textContent=matches.length+" matching / "+liveShipments.length+" retrieved";
- if(!liveShipments.length){host.innerHTML='<p class="lookup-empty">No live shipments retrieved yet. Search an Order Number above to build this browser index.</p>';return}
- host.innerHTML=matches.length?matches.map(shipmentCard).join(""):'<p class="lookup-empty">No retrieved shipment lines match this search.</p>';
-}
-
 function classifyShipment(shipment,dispatch,lines){
  const model=String(shipment.TransportInformation?.DistributionModel||shipment.DistributionModel||"").trim();
  const normalized=model.toLowerCase().replace(/[^a-z]/g,"");
@@ -191,8 +166,7 @@ function zhisterLineQuantity(line){
  if(Number.isFinite(amount)&&amount>=0&&Number.isFinite(unitPrice)&&unitPrice>0)return Number((amount/unitPrice).toFixed(3));
  const confirmedAmount=Number(line?.ConfirmedLineAmount),confirmedPrice=Number(line?.ConfirmedPrice);
  if(Number.isFinite(confirmedAmount)&&confirmedAmount>=0&&Number.isFinite(confirmedPrice)&&confirmedPrice>0)return Number((confirmedAmount/confirmedPrice).toFixed(3));
- const raw=Number(line?.RequestedQuantity);
- return Number.isFinite(raw)&&raw>=0?raw:null;
+ return null;
 }
 function shipmentCard(record,index){
  const s=record.Shipment||record.shipment||record;
@@ -235,9 +209,8 @@ async function lookupZhipster(event){
   if(!response.ok)throw new Error(body.error||`Import failed (HTTP ${response.status}).`);
   if(body.found===false){result.innerHTML='<p class="lookup-empty">No shipment was found for this Order Number.</p>';return}
   const shipments=collectShipments(body.sourceShipments||[]);
-  if(shipments.length)rememberLiveShipments(shipments);
   await loadWmsShipments();
-  result.insertAdjacentHTML("afterbegin",`<p class="lookup-success">${Number(body.imported||0)} shipment(s) saved to the WMS database. Existing Zhipster shipments were not changed.</p>`);
+  result.innerHTML=`<p class="lookup-success">${Number(body.imported||0)} shipment(s) saved to the WMS database.</p>`+shipments.map(shipmentCard).join("");
   toast("WMS shipment import complete.");
  }catch(error){
   result.innerHTML=`<p class="lookup-error">${safeText(error.message||"Could not complete the import.")}</p>`;
@@ -246,11 +219,8 @@ async function lookupZhipster(event){
  }
 }
 $("#zhipsterLookupForm").addEventListener("submit",lookupZhipster);
-$("#liveItemSearch").addEventListener("input",renderLiveShipmentIndex);
 $("#operationsSearch")?.addEventListener("input",renderOperations);
 $("#refreshOperations")?.addEventListener("click",async()=>{await loadWmsShipments();renderOperations()});
-renderLiveShipmentIndex();
-
 $("#orderSearch").oninput=renderOrders;$("#statusFilter").onchange=renderOrders;$("#clearFilters").onclick=()=>{$("#orderSearch").value="";$("#statusFilter").value="";renderOrders()};
 $("#pickSearch").oninput=renderPicking;$("#locationFilter").onchange=renderPicking;$("#pickStatus").onchange=renderPicking;$("#productSearch").oninput=renderProducts;$("#productLocation").onchange=renderProducts;
 $("#exportOrders").onclick=exportOrders;$("#reportOrdersExport").onclick=exportOrders;$("#exportProducts").onclick=exportProducts;$("#reportProductsExport").onclick=exportProducts;
