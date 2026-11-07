@@ -40,7 +40,7 @@ function renderOrders(){
 function showWmsShipment(id){
  const s=wmsShipments.find(x=>x.id===id);if(!s)return;
  const lines=s.shipment_lines||[],work=s.warehouse_work||{},customer=s.customer||{};
- $("#modalContent").innerHTML=`<div class="eyebrow">ZHIPSTER SHIPMENT / ${safeText(s.external_shipment_id)}</div><h2>${safeText(s.external_shipment_number||s.external_order_number||"Shipment")}</h2><p class="muted">Order reference: ${safeText(s.external_order_number||"Not supplied")}</p><div class="detail-grid"><div class="detail-box"><small>ZHIPSTER STATUS</small><strong>${safeText(s.source_status||"Unknown")}</strong></div><div class="detail-box"><small>DISTRIBUTION MODEL</small><strong>${safeText(s.distribution_model||"Not supplied")}</strong></div><div class="detail-box"><small>WAREHOUSE ELIGIBILITY</small><strong>${safeText(s.eligibility||"needs_review")}</strong></div><div class="detail-box"><small>ARTICLE LINES</small><strong>${lines.length}</strong></div></div><p class="muted">${safeText(work.hold_reason||"Warehouse work remains on hold until fulfilment eligibility is reviewed.")}</p><h3 style="font:700 12px Manrope">Shipment article lines</h3><div class="table-wrap"><table class="modal-lines"><thead><tr><th>SUPPLIER ITEM NO.</th><th>BUYER ARTICLE NO.</th><th>DESCRIPTION</th><th>QUANTITY</th></tr></thead><tbody>${lines.map(l=>`<tr><td>${safeText(l.supplier_article_number||"—")}</td><td>${safeText(l.buyer_article_number||"—")}</td><td>${safeText(l.description||"—")}</td><td>${safeText(l.requested_quantity??"—")}</td></tr>`).join("")||'<tr><td colspan="4">No article lines returned.</td></tr>'}</tbody></table></div><div class="modal-actions"><button class="btn" onclick="closeModal()">Close</button></div>`;
+ $("#modalContent").innerHTML=`<div class="eyebrow">ZHIPSTER SHIPMENT / ${safeText(s.external_shipment_id)}</div><h2>${safeText(s.external_shipment_number||s.external_order_number||"Shipment")}</h2><p class="muted">Order reference: ${safeText(s.external_order_number||"Not supplied")}</p><div class="detail-grid"><div class="detail-box"><small>ZHIPSTER STATUS</small><strong>${safeText(s.source_status||"Unknown")}</strong></div><div class="detail-box"><small>DISTRIBUTION MODEL</small><strong>${safeText(s.distribution_model||"Not supplied")}</strong></div><div class="detail-box"><small>WAREHOUSE ELIGIBILITY</small><strong>${safeText(s.eligibility||"needs_review")}</strong></div><div class="detail-box"><small>ARTICLE LINES</small><strong>${lines.length}</strong></div></div><p class="muted">${safeText(work.hold_reason||"Warehouse work remains on hold until fulfilment eligibility is reviewed.")}</p><h3 style="font:700 12px Manrope">Shipment article lines</h3><div class="table-wrap"><table class="modal-lines"><thead><tr><th>SUPPLIER ITEM NO.</th><th>BUYER ARTICLE NO.</th><th>DESCRIPTION</th></tr></thead><tbody>${lines.map(l=>`<tr><td>${safeText(l.supplier_article_number||"—")}</td><td>${safeText(l.buyer_article_number||"—")}</td><td>${safeText(l.description||"—")}</td></tr>`).join("")||'<tr><td colspan="3">No article lines returned.</td></tr>'}</tbody></table></div><div class="modal-actions"><button class="btn" onclick="closeModal()">Close</button></div>`;
  $("#modal").classList.add("show");
 }
 
@@ -57,14 +57,11 @@ function renderOperations(){
   let html='<article class="ops-order"><div class="ops-order-head"><div><span class="eyebrow">BYGGHEMMA ORDER</span><h3>'+safeText(s.external_order_number||"Order number unavailable")+'</h3><small>Shipment '+safeText(s.external_shipment_number||s.external_shipment_id||"—")+' · '+safeText(s.source_status||"Status unknown")+'</small></div><div><span class="status-chip '+(eligible?"status-ready":"status-open")+'">'+safeText(state.replace(/_/g," "))+'</span><p class="muted">'+safeText(s.distribution_model||"Distribution model not supplied")+'</p></div></div>';
   html+='<section class="ops-customer"><div><span class="eyebrow">CUSTOMER / DELIVERY TO</span><strong>'+safeText(customer.name||"Customer name not supplied")+'</strong><p>'+safeText([customer.street,customer.postal_code,customer.city,customer.country_code].filter(Boolean).join(", ")||"Delivery address not supplied")+'</p></div><div class="ops-customer-contact">'+(customer.phone?'<span>☎ '+safeText(customer.phone)+'</span>':'')+(customer.email?'<span>✉ '+safeText(customer.email)+'</span>':'')+(customer.drop_point_name?'<span>Pickup point: '+safeText(customer.drop_point_name)+'</span>':'')+'</div></section>';
   html+="<div class=\"ops-order-summary\"><div><small>ORDER NUMBER</small><strong>"+safeText(s.external_order_number||"—")+"</strong></div><div><small>ANTAL ARTIKLAR</small><strong>"+lines.length+"</strong></div><div><small>KUND</small><strong>"+safeText(customer.name||"Not supplied")+"</strong></div><div><small>POSTNR / ORT</small><strong>"+safeText([customer.postal_code,customer.city].filter(Boolean).join(" ")||"Not supplied")+"</strong></div></div>";
-  if(s.eligibility==="needs_review"||!s.eligibility)html+='<div class="ops-actions"><span class="ops-note">Confirm warehouse fulfilment responsibility before picking.</span><button class="btn primary" data-review="'+s.id+'" data-eligibility="eligible">Approve for warehouse</button><button class="btn" data-review="'+s.id+'" data-eligibility="on_hold">Put on hold</button><button class="btn" data-review="'+s.id+'" data-eligibility="not_eligible">Exclude</button></div>';
-  html+='<div class="table-wrap"><table class="ops-lines"><thead><tr><th>SUPPLIER ITEM NO.</th><th>BUYER ARTICLE NO.</th><th>DESCRIPTION</th><th>ORDERED QTY</th><th>PICKED / ACTION</th></tr></thead><tbody>';
+  if(s.eligibility==="needs_review"||!s.eligibility)html+='<div class="ops-actions"><span class="ops-note">Picking is unavailable until customer-specific quantities are verified.</span><button class="btn" data-review="'+s.id+'" data-eligibility="on_hold">Put on hold</button><button class="btn" data-review="'+s.id+'" data-eligibility="not_eligible">Exclude</button></div>';
+  html+='<div class="table-wrap"><table class="ops-lines"><thead><tr><th>SUPPLIER ITEM NO.</th><th>BUYER ARTICLE NO.</th><th>DESCRIPTION</th></tr></thead><tbody>';
   lines.forEach(l=>{
-   const pl=taskLines.find(x=>x.shipment_line_id===l.id),toPick=Number(pl?.quantity_to_pick??l.requested_quantity??0),picked=Number(pl?.quantity_picked||0);
-   html+='<tr><td><strong>'+safeText(l.supplier_article_number||"—")+'</strong></td><td>'+safeText(l.buyer_article_number||"—")+'</td><td>'+safeText(l.description||"—")+'</td><td class="ops-qty"><span class="ops-quantity-number">'+safeText(l.requested_quantity??"—")+'</span><span class="ops-quantity-label">PCS ORDERED</span></td><td>';
-   if(pl&&["open","in_progress"].includes(task.status))html+='<div class="ops-pick-control"><input type="number" min="0" max="'+toPick+'" step="any" value="'+picked+'" id="picked-'+l.id+'"><button class="btn subtle" data-save-pick="'+l.id+'" data-task="'+task.id+'">Save</button><small>of '+toPick+'</small></div>';
-   else if(pl)html+=picked+' / '+toPick;else html+='—';
-   html+='</td></tr>';
+   html+='<tr><td><strong>'+safeText(l.supplier_article_number||"—")+'</strong></td><td>'+safeText(l.buyer_article_number||"—")+'</td><td>'+safeText(l.description||"—")+'</td>';
+   html+='</tr>';
   });
   if(!lines.length)html+='<tr><td colspan="7">No article lines stored.</td></tr>';
   html+='</tbody></table></div><div class="ops-footer">'+lines.length+' article lines · Eligibility: '+safeText(s.eligibility||"needs_review")+'</div>';
@@ -72,7 +69,7 @@ function renderOperations(){
   return html+'</article>';
  }).join("");
  host.querySelectorAll("[data-review]").forEach(b=>b.onclick=()=>runWarehouseAction({action:"review",shipmentId:b.dataset.review,eligibility:b.dataset.eligibility}));
- host.querySelectorAll("[data-save-pick]").forEach(b=>b.onclick=()=>runWarehouseAction({action:"pick",pickTaskId:b.dataset.task,shipmentLineId:b.dataset.savePick,quantityPicked:Number($("#picked-"+b.dataset.savePick).value)}));
+ 
  host.querySelectorAll("[data-pack-shipment]").forEach(b=>b.onclick=()=>{const id=b.dataset.packShipment;runWarehouseAction({action:"pack",warehouseWorkId:id,packageType:$("#pack-type-"+id).value,weightKg:Number($("#pack-weight-"+id).value),lengthCm:Number($("#pack-length-"+id).value),widthCm:Number($("#pack-width-"+id).value),heightCm:Number($("#pack-height-"+id).value)})});
 }
 async function runWarehouseAction(payload){
@@ -161,13 +158,7 @@ function classifyShipment(shipment,dispatch,lines){
  }
  return {label:"Review required",kind:"review",reason:`Distribution model "${model}" has not yet been explicitly mapped to an own-warehouse fulfilment rule. No picking task will be created.`};
 }
-function zhisterLineQuantity(line){
- const amount=Number(line?.RequestedLineAmount),unitPrice=Number(line?.RequestedPrice);
- if(Number.isFinite(amount)&&amount>=0&&Number.isFinite(unitPrice)&&unitPrice>0)return Number((amount/unitPrice).toFixed(3));
- const confirmedAmount=Number(line?.ConfirmedLineAmount),confirmedPrice=Number(line?.ConfirmedPrice);
- if(Number.isFinite(confirmedAmount)&&confirmedAmount>=0&&Number.isFinite(confirmedPrice)&&confirmedPrice>0)return Number((confirmedAmount/confirmedPrice).toFixed(3));
- return null;
-}
+function zhisterLineQuantity(){ return null; }
 function shipmentCard(record,index){
  const s=record.Shipment||record.shipment||record;
  const dispatch=Array.isArray(s.DispatchOrders)?s.DispatchOrders:(Array.isArray(record.DispatchOrders)?record.DispatchOrders:[]);
@@ -187,14 +178,14 @@ function shipmentCard(record,index){
   else if(qty!==null&&existing.quantity!==null)existing.quantity=Number((existing.quantity+qty).toFixed(3));
   else existing.quantity=null;
  });
- const lines=[...grouped.values()],totalQty=lines.reduce((sum,line)=>sum+(Number(line.quantity)||0),0);
+ const lines=[...grouped.values()];
  const qtyText=value=>value===null||value===undefined?"Not supplied":String(value);
  return `<article class="live-shipment-card">
   <header class="live-shipment-head"><div><span class="eyebrow">ORDER</span><h3>${safeText(orderNo)}</h3><p class="live-order-reference">Shipment ${safeText(s.ShipmentNumber||"—")}</p></div><span class="status-chip status-open">${safeText(s.ShipmentStatus||"Status unavailable")}</span></header>
   <section class="live-customer-profile"><div class="live-customer-main"><div class="live-customer-identity"><span class="eyebrow">DELIVER TO</span><h4>${safeText(customerName)}</h4><p>${safeText(addressText)}</p></div></div><div class="live-customer-contact">${contact.PhoneNumber?`<a href="tel:${safeText(contact.PhoneNumber.replace(/[^+0-9]/g,""))}"><span>PHONE</span><strong>${safeText(contact.PhoneNumber)}</strong></a>`:""}${contact.EmailAddress?`<a href="mailto:${safeText(contact.EmailAddress)}"><span>EMAIL</span><strong>${safeText(contact.EmailAddress)}</strong></a>`:""}</div></section>
   ${drop.Name?`<section class="live-drop-point"><div class="live-drop-icon">⌖</div><div><span class="eyebrow">DELIVERY POINT</span><strong>${safeText(drop.Name)}</strong><p>${safeText(dropAddressText||"Address not supplied")}</p></div></section>`:""}
-  <div class="live-lines-heading"><div><h4>Ordered products</h4><p>${lines.length} product line(s) · ${qtyText(totalQty)} total units</p></div></div>
-  <div class="table-wrap"><table class="lookup-lines"><thead><tr><th>SUPPLIER ARTICLE</th><th>BUYER ARTICLE</th><th>PRODUCT</th><th>ORDERED QTY</th></tr></thead><tbody>${lines.map(line=>`<tr><td>${safeText(line.supplier)}</td><td>${safeText(line.buyer)}</td><td>${safeText(line.description)}</td><td><strong>${safeText(qtyText(line.quantity))}</strong></td></tr>`).join("")||'<tr><td colspan="4">No product lines were returned by Zhipster.</td></tr>'}</tbody></table></div>
+  <div class="live-lines-heading"><div><h4>Ordered products</h4><p>${lines.length} product line(s)</p></div></div>
+  <div class="table-wrap"><table class="lookup-lines"><thead><tr><th>SUPPLIER ARTICLE</th><th>BUYER ARTICLE</th><th>PRODUCT</th></tr></thead><tbody>${lines.map(line=>`<tr><td>${safeText(line.supplier)}</td><td>${safeText(line.buyer)}</td><td>${safeText(line.description)}</td></tr>`).join("")||'<tr><td colspan="3">No product lines were returned by Zhipster.</td></tr>'}</tbody></table></div>
  </article>`;
 }
 async function lookupZhipster(event){
