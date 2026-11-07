@@ -92,6 +92,7 @@ body:not(.authenticated) .app, body:not(.authenticated) #modal, body:not(.authen
  <div class="page-head"><div><div class="eyebrow">WORKSPACE / ORDERS</div><h1>Orders</h1></div><button class="btn" id="exportOrders">↓ Export CSV</button></div>
  <div class="panel filters"><div class="filter-grid"><label>Search orders<input id="orderSearch" placeholder="Shipment ID, order number, article or description…"></label><label>Warehouse eligibility<select id="statusFilter"><option value="">All eligibility states</option><option value="needs_review">Needs review</option><option value="eligible">Eligible</option><option value="not_eligible">Not eligible</option><option value="on_hold">On hold</option></select></label><button class="btn subtle" id="clearFilters">Reset filters</button></div></div>
  <div class="panel table-panel"><div class="panel-head"><div><h2>All orders <span class="count" id="orderCount">0</span></h2></div><span class="muted tiny">LIVE DATA ONLY</span></div><div class="table-wrap"><table><thead><tr><th>ORDER REFERENCE</th><th>ZHIPSTER STATUS</th><th>DISTRIBUTION MODEL</th><th>ANTAL ARTIKLAR</th><th>KUND</th><th>POSTNR / ORT</th><th>ELIGIBILITY</th><th></th></tr></thead><tbody id="orderRows"></tbody></table></div></div>
+<section class="panel operations-panel"><div class="panel-head"><div><h2>Warehouse operations</h2></div><button class="btn subtle" id="refreshOperations">↻ Refresh</button></div><label class="operations-search">Search order number, shipment, supplier item no., buyer article no. or description<input id="operationsSearch" type="search" placeholder="e.g. 301566774, 99566, Ifö Sign…"></label><div class="operations-summary" id="operationsSummary"></div><div id="operationsResults" class="operations-results"></div></section>
 </section>
 <section class="page" id="page-shipments">
  <div class="page-head"><div><div class="eyebrow">WORKSPACE / BYGGHEMMA ORDERS</div><h1>Order lookup</h1></div></div>
@@ -107,7 +108,7 @@ body:not(.authenticated) .app, body:not(.authenticated) #modal, body:not(.authen
   <div id="zhipsterLookupResult" class="lookup-result" aria-live="polite"></div>
  </section>
  
-<section class="panel operations-panel"><div class="panel-head"><div><h2>Warehouse operations</h2></div><button class="btn subtle" id="refreshOperations">↻ Refresh</button></div><label class="operations-search">Search order number, shipment, supplier item no., buyer article no. or description<input id="operationsSearch" type="search" placeholder="e.g. 301566774, 99566, Ifö Sign…"></label><div class="operations-summary" id="operationsSummary"></div><div id="operationsResults" class="operations-results"></div></section>
+
 </section>
 <section class="page" id="page-picking">
  <div class="page-head"><div><div class="eyebrow">WORKSPACE / PICKING</div><h1>Picking</h1></div><button class="btn primary" id="printPick">↗ Print pick list</button></div>
