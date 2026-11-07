@@ -186,54 +186,41 @@ function classifyShipment(shipment,dispatch,lines){
  }
  return {label:"Review required",kind:"review",reason:`Distribution model "${model}" has not yet been explicitly mapped to an own-warehouse fulfilment rule. No picking task will be created.`};
 }
+function zhisterLineQuantity(line){
+ const amount=Number(line?.RequestedLineAmount),unitPrice=Number(line?.RequestedPrice);
+ if(Number.isFinite(amount)&&amount>=0&&Number.isFinite(unitPrice)&&unitPrice>0)return Number((amount/unitPrice).toFixed(3));
+ const confirmedAmount=Number(line?.ConfirmedLineAmount),confirmedPrice=Number(line?.ConfirmedPrice);
+ if(Number.isFinite(confirmedAmount)&&confirmedAmount>=0&&Number.isFinite(confirmedPrice)&&confirmedPrice>0)return Number((confirmedAmount/confirmedPrice).toFixed(3));
+ const raw=Number(line?.RequestedQuantity);
+ return Number.isFinite(raw)&&raw>=0?raw:null;
+}
 function shipmentCard(record,index){
  const s=record.Shipment||record.shipment||record;
  const dispatch=Array.isArray(s.DispatchOrders)?s.DispatchOrders:(Array.isArray(record.DispatchOrders)?record.DispatchOrders:[]);
- const lines=dispatch.flatMap(d=>Array.isArray(d.DispatchOrderLines)?d.DispatchOrderLines:[]);
- const shipmentStatus=s.ShipmentStatus||"Unknown";
- const distribution=s.TransportInformation?.DistributionModel||s.DistributionModel||"Not supplied";
+ const sourceLines=dispatch.flatMap(d=>Array.isArray(d.DispatchOrderLines)?d.DispatchOrderLines:[]);
  const orderRefs=dispatch.flatMap(d=>d.OrderReferences?.Orders||[]);
  const orderNo=orderRefs.map(x=>x.OrderNumber).filter(Boolean).join(", ")||s.ShipmentNumber||"—";
- const delivery=s.Delivery||{};
- const deliveryAddress=delivery.Address||{};
- const deliveryContact=delivery.Contact||{};
- const customerName=deliveryContact.Name||deliveryAddress.Name||"Customer name not supplied";
- const addressLines=[deliveryAddress.Street1,deliveryAddress.Street2, [deliveryAddress.ZipCode,deliveryAddress.City].filter(Boolean).join(" "),deliveryAddress.CountryCode].filter(Boolean);
- const customerAddress=addressLines.join(", ")||"Delivery address not supplied";
- const phone=deliveryContact.PhoneNumber||"";
- const email=deliveryContact.EmailAddress||"";
- const drop=s.DropPoint||{};
- const dropAddress=drop.Address||{};
+ const delivery=s.Delivery||{},address=delivery.Address||{},contact=delivery.Contact||{};
+ const customerName=contact.Name||address.Name||"Customer not supplied";
+ const addressText=[address.Street1,address.Street2,[address.ZipCode,address.City].filter(Boolean).join(" "),address.CountryCode].filter(Boolean).join(", ")||"Delivery address not supplied";
+ const drop=s.DropPoint||{},dropAddress=drop.Address||{};
  const dropAddressText=[dropAddress.Street1,dropAddress.ZipCode,dropAddress.City].filter(Boolean).join(", ");
- const consignee=s.Consignee||{};
- const provider=s.Provider||{};
- const totalRequested=lines.reduce((sum,l)=>sum+(Number(l.RequestedQuantity)||0),0);
-  
- const lineRows=lines.map(l=>({supplier:l.SuppliersArticleNumber||"—",buyer:l.BuyersArticleNumber||"—",description:l.ArticleDescription||"—",quantity:l.RequestedQuantity??"—",price:l.RequestedPrice??"—",amount:l.RequestedLineAmount??"—",status:l.DispatchLineStatus||"—"}));
+ const grouped=new Map();
+ sourceLines.forEach(line=>{
+  const key=[line.SuppliersArticleNumber||line.BuyersArticleNumber||"",line.BuyersArticleNumber||"",line.ArticleDescription||""].join("|");
+  const qty=zhisterLineQuantity(line),existing=grouped.get(key);
+  if(!existing)grouped.set(key,{supplier:line.SuppliersArticleNumber||"—",buyer:line.BuyersArticleNumber||"—",description:line.ArticleDescription||"—",quantity:qty});
+  else if(qty!==null&&existing.quantity!==null)existing.quantity=Number((existing.quantity+qty).toFixed(3));
+  else existing.quantity=null;
+ });
+ const lines=[...grouped.values()],totalQty=lines.reduce((sum,line)=>sum+(Number(line.quantity)||0),0);
+ const qtyText=value=>value===null||value===undefined?"Not supplied":String(value);
  return `<article class="live-shipment-card">
-  <div class="live-shipment-head"><div><span class="eyebrow">ZHIPSTER SHIPMENT ${index+1}</span><h3>${safeText(s.ShipmentNumber||s.ShipmentKey||"Shipment")}</h3><p class="live-order-reference">Order ${safeText(orderNo)}</p></div><span class="status-chip status-open">${safeText(shipmentStatus)}</span></div>
-  <section class="live-customer-profile">
-   <div class="live-customer-main">
-    <div class="live-customer-avatar" aria-hidden="true">♙</div>
-    <div class="live-customer-identity"><span class="eyebrow">CUSTOMER / DELIVER TO</span><h4>${safeText(customerName)}</h4><p>${safeText(customerAddress)}</p></div>
-   </div>
-   <div class="live-customer-contact">
-    ${phone?`<a href="tel:${safeText(phone.replace(/[^+0-9]/g,""))}"><span>PHONE</span><strong>${safeText(phone)}</strong></a>`:""}
-    ${email?`<a href="mailto:${safeText(email)}"><span>EMAIL</span><strong>${safeText(email)}</strong></a>`:""}
-    ${!phone&&!email?'<span class="live-contact-missing">No contact details supplied by Zhipster</span>':""}
-   </div>
-  </section>
-  ${drop.Name?`<section class="live-drop-point"><div class="live-drop-icon">⌖</div><div><span class="eyebrow">DHL COLLECTION POINT</span><strong>${safeText(drop.Name)}</strong><p>${safeText(dropAddressText||"Collection-point address not supplied")}</p><small>${safeText(drop.DropPointID||drop.DropPointType||"")}</small></div></section>`:""}
-  <div class="live-shipment-grid">
-   <div><small>ORDER NUMBER</small><strong>${safeText(orderNo)}</strong></div>
-   <div><small>TOTAL ORDERED QTY</small><strong>${safeText(totalRequested||"—")} pcs</strong></div>
-    
-   <div><small>DISTRIBUTION MODEL</small><strong>${safeText(distribution)}</strong></div>
-  </div>
-  <div class="live-parties"><span>Consignee / account party</span><strong>${safeText(consignee.Name||"Not supplied")}</strong><span>Shipment provider</span><strong>${safeText(provider.Name||"Not supplied")}</strong></div>
-  <div class="live-lines-heading"><div><h4>Ordered products</h4><p>${lines.length} article line(s) · quantities are taken directly from Zhipster</p></div></div>
-  ${lineRows.length?`<div class="table-wrap"><table><thead><tr><th>SUPPLIER ITEM NO.</th><th>BUYER ARTICLE NO.</th><th>PRODUCT</th><th>QUANTITY</th><th>LINE STATUS</th></tr></thead><tbody>${lineRows.map(l=>`<tr><td><strong>${safeText(l.supplier)}</strong></td><td>${safeText(l.buyer)}</td><td>${safeText(l.description)}</td><td><strong>${safeText(l.quantity)}</strong></td><td>${safeText(l.status)}</td></tr>`).join("")}</tbody></table></div>`:'<p class="muted">No dispatch order lines were present in this response.</p>'}
-  <p class="lookup-caution">Customer, delivery, collection-point and product information are displayed from the Zhipster response. This lookup is read-only; no Zhipster shipment is modified.</p>
+  <header class="live-shipment-head"><div><span class="eyebrow">ORDER</span><h3>${safeText(orderNo)}</h3><p class="live-order-reference">Shipment ${safeText(s.ShipmentNumber||"—")}</p></div><span class="status-chip status-open">${safeText(s.ShipmentStatus||"Status unavailable")}</span></header>
+  <section class="live-customer-profile"><div class="live-customer-main"><div class="live-customer-identity"><span class="eyebrow">DELIVER TO</span><h4>${safeText(customerName)}</h4><p>${safeText(addressText)}</p></div></div><div class="live-customer-contact">${contact.PhoneNumber?`<a href="tel:${safeText(contact.PhoneNumber.replace(/[^+0-9]/g,""))}"><span>PHONE</span><strong>${safeText(contact.PhoneNumber)}</strong></a>`:""}${contact.EmailAddress?`<a href="mailto:${safeText(contact.EmailAddress)}"><span>EMAIL</span><strong>${safeText(contact.EmailAddress)}</strong></a>`:""}</div></section>
+  ${drop.Name?`<section class="live-drop-point"><div class="live-drop-icon">⌖</div><div><span class="eyebrow">DELIVERY POINT</span><strong>${safeText(drop.Name)}</strong><p>${safeText(dropAddressText||"Address not supplied")}</p></div></section>`:""}
+  <div class="live-lines-heading"><div><h4>Ordered products</h4><p>${lines.length} product line(s) · ${qtyText(totalQty)} total units</p></div></div>
+  <div class="table-wrap"><table class="lookup-lines"><thead><tr><th>SUPPLIER ARTICLE</th><th>BUYER ARTICLE</th><th>PRODUCT</th><th>ORDERED QTY</th></tr></thead><tbody>${lines.map(line=>`<tr><td>${safeText(line.supplier)}</td><td>${safeText(line.buyer)}</td><td>${safeText(line.description)}</td><td><strong>${safeText(qtyText(line.quantity))}</strong></td></tr>`).join("")||'<tr><td colspan="4">No product lines were returned by Zhipster.</td></tr>'}</tbody></table></div>
  </article>`;
 }
 async function lookupZhipster(event){
