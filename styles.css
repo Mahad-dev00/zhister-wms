@@ -54,3 +54,30 @@
 .content{padding-top:26px}
 .sync-pill i{background:#20a36b}
 .lookup-caution{display:none!important}
+
+/* Order lookup: concise, readable and mobile-first. */
+.integration-lookup{padding:22px;max-width:1120px;margin:0 auto 22px}
+.integration-lookup>.panel-head{align-items:center}
+.integration-lookup>.panel-head h2{font-size:16px}
+.integration-lookup .filter-grid{display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:12px;align-items:end}
+.integration-lookup .lookup-value{font-size:11px;font-weight:700;color:#536176}
+.integration-lookup .lookup-value input{height:46px;font-size:14px;border-radius:9px;padding:0 14px}
+.integration-lookup #zhipsterLookupButton{height:46px;padding:0 20px;white-space:nowrap}
+.live-index-tools{margin-top:16px;padding-top:15px;grid-template-columns:minmax(220px,1fr) auto}
+.lookup-result{display:grid;gap:14px}
+.live-shipment-card{padding:22px;border-radius:12px;box-shadow:0 5px 20px #17223408}
+.live-shipment-head{align-items:center;padding-bottom:15px;border-bottom:1px solid #edf0f4}
+.live-shipment-head h3{font-size:20px;letter-spacing:-.4px}
+.live-shipment-head .eyebrow{margin-bottom:5px}
+.live-customer-profile{margin:16px 0;padding:16px;border-radius:10px;background:#f8fafc;border-color:#e9eef5}
+.live-customer-contact a{min-width:0}
+.live-lines-heading{margin:18px 0 8px}
+.live-lines-heading h4{font-size:14px}
+.live-lines-heading p{margin-top:4px}
+.lookup-lines{min-width:620px}
+.lookup-lines th{padding:11px 12px}
+.lookup-lines td{padding:13px 12px;font-size:12px}
+.lookup-lines td:last-child strong{font-size:14px;color:#172234}
+.live-drop-point{margin:0;padding:12px 14px}
+.operations-panel{margin:18px 0 0}
+@media(max-width:700px){.integration-lookup{padding:16px}.integration-lookup .filter-grid{grid-template-columns:1fr}.integration-lookup #zhipsterLookupButton{width:100%}.live-shipment-card{padding:15px}.live-shipment-head h3{font-size:17px}.live-customer-profile{padding:13px}}
