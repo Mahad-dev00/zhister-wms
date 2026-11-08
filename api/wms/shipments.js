@@ -331,6 +331,76 @@ module.exports = async function handler(req, res) {
     }
 
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
+    if (body.action === "preview_import" || body.action === "save_import") {
+      const orderNumber = String(body.orderNumber || "").trim();
+      if (!/^[A-Za-z0-9_-]{1,80}$/.test(orderNumber)) {
+        return res.status(400).json({ error: "Enter a valid Bygghemma order number." });
+      }
+      const data = await fetchZhipster("orderNumber", orderNumber);
+      if (!data) return res.status(200).json({ found: false, sourceShipments: [] });
+      const records = collectShipments(data);
+      if (!records.length) return res.status(200).json({ found: false, sourceShipments: [] });
+      if (records.length > 25) return res.status(413).json({ error: "The lookup returned too many shipments for one import." });
+
+      if (body.action === "preview_import") {
+        return res.status(200).json({ found: true, sourceShipments: records });
+      }
+
+      const manualQuantities = Array.isArray(body.manualQuantities) ? body.manualQuantities : [];
+      const supplied = new Map();
+      for (const item of manualQuantities) {
+        const shipmentId = String(item?.externalShipmentId || "").trim();
+        const lineNumber = Number(item?.lineNumber);
+        const quantity = Number(item?.quantity);
+        const key = `${shipmentId}:${lineNumber}`;
+        if (!shipmentId || !Number.isInteger(lineNumber) || lineNumber < 1 ||
+            !Number.isInteger(quantity) || quantity < 0 || quantity > 1000000 || supplied.has(key)) {
+          return res.status(400).json({ error: "Every article line needs one valid manual ordered quantity." });
+        }
+        supplied.set(key, quantity);
+      }
+
+      const expected = [];
+      for (const record of records) {
+        const sourceShipment = record.Shipment || record.shipment || record;
+        const externalId = String(sourceShipment.ShipmentKey || sourceShipment.ShipmentNumber || "").trim();
+        const dispatchOrders = record.DispatchOrders || sourceShipment.DispatchOrders || [];
+        if (!externalId || !Array.isArray(dispatchOrders)) {
+          return res.status(422).json({ error: "The source response is missing a shipment key or dispatch order lines." });
+        }
+        let lineNumber = 0;
+        for (const order of dispatchOrders) {
+          for (const line of (Array.isArray(order.DispatchOrderLines) ? order.DispatchOrderLines : [])) {
+            lineNumber += 1;
+            expected.push(`${externalId}:${lineNumber}`);
+          }
+        }
+      }
+      if (!expected.length || expected.length !== supplied.size || expected.some(key => !supplied.has(key))) {
+        return res.status(400).json({ error: "Enter and verify the ordered quantity for every article line before saving." });
+      }
+
+      const imported = [];
+      for (const record of records) {
+        const saved = await rpc("import_wms_shipment", { p_payload: record });
+        const shipmentId = saved?.shipment_id;
+        if (!shipmentId) throw new Error("The shipment was imported but its saved WMS ID was not returned.");
+        const detail = await rpc("get_wms_shipment_dispatch_data", { p_shipment_id: shipmentId });
+        const lines = Array.isArray(detail?.shipment_lines) ? detail.shipment_lines : [];
+        for (const line of lines) {
+          const key = `${detail.external_shipment_id}:${Number(line.line_number)}`;
+          if (!supplied.has(key)) throw new Error("The saved article lines no longer match the preview. Refresh the order before saving.");
+          await rpc("wms_set_manual_ordered_quantity", {
+            p_shipment_line_id: line.id,
+            p_quantity: supplied.get(key),
+            p_actor: user.id
+          });
+        }
+        imported.push(saved);
+      }
+      return res.status(200).json({ found: true, imported: imported.length, shipments: imported });
+    }
+
     if (body.action === "confirm_handover") {
       const dispatchId = String(body.dispatchId || "").trim();
       if (!/^[0-9a-f-]{36}$/i.test(dispatchId)) {
