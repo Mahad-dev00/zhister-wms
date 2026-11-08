@@ -62,7 +62,9 @@ async function rpc(name, body) {
     ];
     const databaseMessage = typeof data?.message === "string" ? data.message : "";
     const safeMessage = safeMessages.find(message => databaseMessage.startsWith(message));
-    throw new Error(safeMessage || `WMS database request failed (HTTP ${response.status}).`);
+    const error = new Error(safeMessage || `WMS database request failed (HTTP ${response.status}).`);
+    if (safeMessage) error.status = 400;
+    throw error;
   }
   return data;
 }
@@ -522,7 +524,7 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ found: true, imported: imported.length, shipments: imported, sourceShipments: records });
   } catch (error) {
     const message = error && error.message ? error.message : "Could not complete the WMS shipment request.";
-    const status = /temporarily unavailable|service/i.test(message) ? 503 : 502;
+    const status = Number.isInteger(error?.status) ? error.status : /temporarily unavailable|service/i.test(message) ? 503 : 502;
     return res.status(status).json({ error: message });
   }
 };
