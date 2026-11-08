@@ -359,7 +359,9 @@ module.exports = async function handler(req, res) {
       }
       const result = await rpc("wms_review_shipment", {
         p_shipment_id: shipmentId, p_eligibility: eligibility, p_actor: user.id,
-        p_reason: String(body.reason || "").slice(0, 500) || null
+        p_reason: body.confirmDropShipment === true
+          ? `confirmed_drop_shipment: ${String(body.reason || "Administrator confirmed warehouse fulfilment.").slice(0, 450)}`
+          : String(body.reason || "").slice(0, 500) || null
       });
       return res.status(200).json({ ok: true, result });
     }
