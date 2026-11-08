@@ -127,7 +127,7 @@ body:not(.authenticated) .app, body:not(.authenticated) #modal, body:not(.authen
 <section class="page" id="page-products">
  <div class="page-head"><div><div class="eyebrow">INVENTORY / PRODUCTS</div><h1>Products</h1></div><button class="btn" id="exportProducts">↓ Export CSV</button></div>
  <div class="panel filters"><div class="filter-grid"><label>Search products<input id="productSearch" placeholder="Article number or product name…"></label><label>Location<select id="productLocation"><option value="">All locations</option><option>A1</option></select></label></div></div>
- <div class="panel table-panel"><div class="panel-head"><div><h2>Product catalogue <span class="count">5</span></h2></div></div><div class="table-wrap"><table><thead><tr><th>ARTICLE NUMBER</th><th>PRODUCT</th><th>LOCATION</th></tr></thead><tbody id="productRows"></tbody></table></div></div>
+ <div class="panel table-panel"><div class="panel-head"><div><h2>Article catalogue <span class="count">API</span></h2><p class="muted">Synced from shipment article data · stock quantities require a physical count</p></div></div><div class="table-wrap"><table><thead><tr><th>ARTICLE NUMBER</th><th>PRODUCT / TYPE</th><th>LOCATION</th><th>DIMENSIONS (L × W × H)</th><th>WEIGHT</th><th>VERIFIED STOCK</th></tr></thead><tbody id="productRows"></tbody></table></div></div>
 </section>
 <section class="page" id="page-locations">
  <div class="page-head"><div><div class="eyebrow">INVENTORY / LOCATIONS</div><h1>Locations</h1></div></div>
