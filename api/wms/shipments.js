@@ -90,8 +90,21 @@ module.exports = async function handler(req, res) {
     if (!user) return;
 
     if (req.method === "GET") {
-      const shipments = await rpc("list_wms_shipments", {});
-      return res.status(200).json({ shipments: Array.isArray(shipments) ? shipments : [] });
+      const [shipments, manualQuantities] = await Promise.all([
+        rpc("list_wms_shipments", {}),
+        rpc("list_wms_manual_ordered_quantities", {})
+      ]);
+      const quantities = new Map((Array.isArray(manualQuantities) ? manualQuantities : [])
+        .map((entry) => [entry.shipment_line_id, entry]));
+      const enriched = (Array.isArray(shipments) ? shipments : []).map((shipment) => ({
+        ...shipment,
+        shipment_lines: (shipment.shipment_lines || []).map((line) => ({
+          ...line,
+          manual_ordered_quantity: quantities.get(line.id)?.manual_ordered_quantity ?? null,
+          manual_quantity_updated_at: quantities.get(line.id)?.manual_quantity_updated_at ?? null
+        }))
+      }));
+      return res.status(200).json({ shipments: enriched });
     }
 
     if (!originAllowed(req)) {
@@ -99,6 +112,19 @@ module.exports = async function handler(req, res) {
     }
 
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
+    if (body.action === "set_quantity") {
+      const lineId = String(body.shipmentLineId || "").trim();
+      const quantity = Number(body.quantity);
+      if (!/^[0-9a-f-]{36}$/i.test(lineId) || !Number.isFinite(quantity) || quantity < 0 || quantity > 1000000) {
+        return res.status(400).json({ error: "Enter a valid article line and ordered quantity (0 to 1,000,000)." });
+      }
+      const result = await rpc("wms_set_manual_ordered_quantity", {
+        p_shipment_line_id: lineId,
+        p_quantity: quantity,
+        p_actor: user.id
+      });
+      return res.status(200).json({ ok: true, result });
+    }
     if (body.action === "review") {
       const shipmentId = String(body.shipmentId || "").trim();
       const eligibility = String(body.eligibility || "");
