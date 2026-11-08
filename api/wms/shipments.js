@@ -330,6 +330,17 @@ module.exports = async function handler(req, res) {
     }
 
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
+    if (body.action === "confirm_handover") {
+      const dispatchId = String(body.dispatchId || "").trim();
+      if (!/^[0-9a-f-]{36}$/i.test(dispatchId)) {
+        return res.status(400).json({ error: "A valid confirmed dispatch ID is required." });
+      }
+      const result = await rpc("wms_confirm_dispatch", {
+        p_dispatch_id: dispatchId,
+        p_actor: user.id
+      });
+      return res.status(200).json({ ok: true, result });
+    }
     if (body.action === "book") {
       const shipmentId = String(body.shipmentId || "").trim();
       if (!/^[0-9a-f-]{36}$/i.test(shipmentId)) {
