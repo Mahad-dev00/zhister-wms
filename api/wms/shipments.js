@@ -46,8 +46,23 @@ async function rpc(name, body) {
   let data;
   try { data = raw ? JSON.parse(raw) : null; } catch { data = null; }
   if (!response.ok) {
-    // Keep database internals and privileged response details out of the client response.
-    throw new Error(`WMS database request failed (HTTP ${response.status}).`);
+    // Expose only known, actionable warehouse validation messages; keep SQL details private.
+    const safeMessages = [
+      "Insufficient stock at the assigned location. Record a receipt or stock adjustment before picking.",
+      "Picked quantity exceeds required quantity",
+      "Picked quantity cannot be negative",
+      "Open pick line not found or warehouse work is on hold",
+      "Enter and save the ordered quantity for every article line before approving this shipment for picking",
+      "One or more ordered articles are not mapped to the warehouse article catalogue",
+      "Shipment has no article lines",
+      "Shipment has no positive ordered quantities to pick",
+      "Ordered quantity is locked after warehouse picking is approved or started. Put the shipment on hold and reconcile it before changing quantities",
+      "This source shipment is marked DropShipment. Confirm that your warehouse is responsible for fulfilment before approving it for picking",
+      "Warehouse work has already progressed; quantities cannot be re-approved"
+    ];
+    const databaseMessage = typeof data?.message === "string" ? data.message : "";
+    const safeMessage = safeMessages.find(message => databaseMessage.startsWith(message));
+    throw new Error(safeMessage || `WMS database request failed (HTTP ${response.status}).`);
   }
   return data;
 }
