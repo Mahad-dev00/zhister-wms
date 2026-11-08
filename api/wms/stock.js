@@ -46,13 +46,15 @@ module.exports = async function handler(req, res) {
     if (!user) return;
 
     if (req.method === "GET") {
-      const [inventory, movements] = await Promise.all([
+      const [inventory, movements, catalogue] = await Promise.all([
         rpc("list_wms_inventory"),
-        rpc("list_wms_stock_movements")
+        rpc("list_wms_stock_movements"),
+        rpc("list_wms_stock_article_catalog")
       ]);
       return res.status(200).json({
         inventory: Array.isArray(inventory) ? inventory : [],
-        movements: Array.isArray(movements) ? movements : []
+        movements: Array.isArray(movements) ? movements : [],
+        catalogue: Array.isArray(catalogue) ? catalogue : []
       });
     }
 
