@@ -141,7 +141,8 @@ function buildCarrierDispatchMessage(data) {
 
   const sourceGoodsItems = Array.isArray(sourceShipment.GoodsItems) ? sourceShipment.GoodsItems : [];
   const goodsItems = packages.map((pkg, index) => {
-    const original = sourceGoodsItems[index] || sourceGoodsItems[0] || {};
+    const original = sourceGoodsItems[index] || {};
+    const defaultPackageType = sourceGoodsItems[0]?.PackageTypeID || pkg.package_type || "Kolli";
     return {
       ...original,
       GoodsItemKey: original.GoodsItemKey || pkg.id,
@@ -152,7 +153,7 @@ function buildCarrierDispatchMessage(data) {
       HeightInCm: Number(pkg.height_cm),
       VolumeInM3: Number(pkg.length_cm) * Number(pkg.width_cm) * Number(pkg.height_cm) / 1000000,
       OrderNumber: data.external_order_number || data.external_shipment_id,
-      PackageTypeID: original.PackageTypeID || pkg.package_type || "Kolli",
+      PackageTypeID: original.PackageTypeID || defaultPackageType,
       Parcels: Array.isArray(original.Parcels) ? original.Parcels : []
     };
   });
