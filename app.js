@@ -1,10 +1,5 @@
-const PRODUCTS=[
- {sku:"99566",name:"Wc-sits Ifö Sign Mjuksits",location:"A1"},
- {sku:"99420",name:"Wc-sits Ifö Cera Mjuksits",location:"A1"},
- {sku:"99488",name:"Wc-sits Ifö Spira Mjuksits",location:"A1"},
- {sku:"629309311",name:"WC-stol Ifö Spira 6293 Hårdsits",location:"A1"},
- {sku:"629308811",name:"WC-stol Ifö Spira 6293 Rimfree inkl Mjuksits",location:"A1"}
-];
+let PRODUCTS=[];
+let stockCatalogue=[];
 const KEY="zhister-wms-demo-v1";
 // Remove the retired prototype orders from this browser. Real WMS orders will be loaded from Supabase.
 localStorage.removeItem(KEY);
@@ -94,12 +89,35 @@ function showOrder(num){
 }
 function closeModal(){$("#modal").classList.remove("show")}
 $("#modalClose").onclick=closeModal;$("#modal").onclick=e=>{if(e.target.id==="modal")closeModal()};
+async function loadStockCatalogue(){
+ try{
+  const response=await fetch("/api/wms/stock",{headers:{Accept:"application/json"},cache:"no-store"});
+  if(!response.ok)throw new Error("Could not load the WMS article catalogue.");
+  const body=await response.json();
+  stockCatalogue=Array.isArray(body.catalogue)?body.catalogue:[];
+  PRODUCTS=stockCatalogue.map(row=>({
+   sku:String(row.article_code||""),
+   name:String(row.description||("Article "+row.article_code)),
+   location:String(row.default_location_code||"Unassigned"),
+   type:String(row.article_type||"other"),
+   dimensions:[row.length_cm,row.width_cm,row.height_cm].every(v=>v!==null&&v!==undefined)?`${row.length_cm} × ${row.width_cm} × ${row.height_cm} cm`:"Not supplied",
+   weight:row.weight_kg===null||row.weight_kg===undefined?null:Number(row.weight_kg),
+   quantity:row.verified_quantity_on_hand===null||row.verified_quantity_on_hand===undefined?null:Number(row.verified_quantity_on_hand),
+   stockStatus:String(row.stock_count_status||"not_counted")
+  }));
+  renderProducts();renderPicking();
+ }catch(error){console.warn("Could not load the WMS article catalogue.");}
+}
 function renderProducts(){
- let q=$("#productSearch").value.toLowerCase(),loc=$("#productLocation").value;
- let rows=PRODUCTS.filter(p=>(!loc||p.location===loc)&&(!q||(p.sku+" "+p.name).toLowerCase().includes(q)));
- $("#productRows").innerHTML=rows.map(p=>`<tr><td><strong>${p.sku}</strong></td><td class="customer">${p.name}</td><td><span class="status-chip status-shipped">${p.location}</span></td></tr>`).join("");
+ const search=$("#productSearch"),locationFilter=$("#productLocation");
+ const q=(search?.value||"").toLowerCase(),loc=locationFilter?.value||"";
+ const rows=PRODUCTS.filter(p=>(!loc||p.location===loc)&&(!q||(p.sku+" "+p.name+" "+p.type).toLowerCase().includes(q)));
+ $("#productRows").innerHTML=rows.map(p=>{
+  const quantity=p.quantity===null||p.quantity===undefined?"Not counted":String(p.quantity);
+  return `<tr><td><strong>${safeText(p.sku)}</strong></td><td class="customer">${safeText(p.name)}<span class="sub-cell">${p.type==="toilet_seat"?"Toilet seat":p.type==="toilet"?"Toilet":"Article"}</span></td><td><span class="status-chip status-shipped">${safeText(p.location)}</span></td><td>${safeText(p.dimensions)}</td><td>${p.weight===null?"—":safeText(String(p.weight)+" kg")}</td><td><strong>${safeText(quantity)}</strong></td></tr>`;
+ }).join("")||'<tr><td colspan="6" class="muted">No matching articles in the WMS catalogue.</td></tr>';
  $("#locSkus").textContent=PRODUCTS.length;
- $("#locationProducts").innerHTML=PRODUCTS.map(p=>`<div class="loc-product"><span><strong>${p.sku}</strong> · ${p.name}</span></div>`).join("");
+ $("#locationProducts").innerHTML=PRODUCTS.filter(p=>p.location==="A1").map(p=>`<div class="loc-product"><span><strong>${safeText(p.sku)}</strong> · ${safeText(p.name)}</span><small>${safeText(p.dimensions)} · ${p.weight===null?"—":safeText(String(p.weight)+" kg")} · Not counted</small></div>`).join("")||'<p class="muted">No articles assigned to A1.</p>';
 }
 function renderPicking(){
  let q=$("#pickSearch").value.toLowerCase(),loc=$("#locationFilter").value,filter=$("#pickStatus").value;
@@ -129,7 +147,7 @@ function renderShipping(){
 }
 function csv(name,rows){let text=rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\n");let a=document.createElement("a"),url=URL.createObjectURL(new Blob(["\ufeff"+text],{type:"text/csv;charset=utf-8"}));a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}
 function exportOrders(){csv("zhister-orders.csv",[["WMS shipment ID","Zhipster shipment number","Order number","Source status","Distribution model","Eligibility","Supplier article","Buyer article","Description","Quantity"],...wmsShipments.flatMap(s=>(s.shipment_lines||[]).map(l=>[s.external_shipment_id,s.external_shipment_number,s.external_order_number,s.source_status,s.distribution_model,s.eligibility,l.supplier_article_number,l.buyer_article_number,l.description,l.requested_quantity]))])}
-function exportProducts(){csv("zhister-products.csv",[["Article number","Product","Location"],...PRODUCTS.map(p=>[p.sku,p.name,p.location])])}
+function exportProducts(){csv("zhister-products.csv",[["Article number","Product","Type","Location","Dimensions L × W × H","Weight kg","Verified quantity","Stock count status"],...PRODUCTS.map(p=>[p.sku,p.name,p.type,p.location,p.dimensions,p.weight,p.quantity===null?"Not counted":p.quantity,p.stockStatus])])}
 
 function safeText(value){
  return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
@@ -218,4 +236,5 @@ $("#exportOrders").onclick=exportOrders;$("#reportOrdersExport").onclick=exportO
 $("#printPick").onclick=()=>window.print();$("#printReport").onclick=()=>window.print();
 function renderAll(){renderOverview();renderOrders();renderProducts();renderPicking();renderPacking();renderShipping();$("#reportOrders").textContent=orders.length}
 renderAll();
+loadStockCatalogue();
 loadWmsShipments();
