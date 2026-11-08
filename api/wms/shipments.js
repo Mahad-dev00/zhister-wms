@@ -186,7 +186,7 @@ function buildCarrierDispatchMessage(data) {
     ...source,
     MessageHeader: {
       ...header,
-      Origin: "Zhister WMS",
+      Origin: header.Origin || "Zhister WMS",
       Version: header.Version || "1.0",
       Language: header.Language || "En",
       CreatedDate: { ...(header.CreatedDate || {}), Value: new Date().toISOString() },
